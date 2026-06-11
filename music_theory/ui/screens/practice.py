@@ -13,10 +13,10 @@ from PyQt6.QtWidgets import (
 
 from ...adaptive import MasteryModel, difficulty_for_rating, level_for_rating
 from ...errors import guard
-from ...exercises.registry import all_types, safe_generate, title_of, types_for_domain, domain_of
+from ...exercises.registry import all_types, safe_generate, title_of, types_for_domain
 from ..common import heading, subtle
 from ..exercise_player import ExercisePlayer
-from ..theme import TEXT_MUTED
+from .. import theme
 
 _DOMAINS = [("All", ""), ("Theory", "theory"), ("Aural", "aural"), ("Piano", "piano")]
 
@@ -70,6 +70,12 @@ class PracticeScreen(QWidget):
         start = QPushButton("New")
         start.clicked.connect(self._new)
         controls.addWidget(start)
+        weak = QPushButton("🎯 Focus weakest")
+        weak.setObjectName("Secondary")
+        weak.setToolTip("Jump straight to the topic your mastery data says needs work")
+        weak.setAccessibleName("Practice your weakest skill")
+        weak.clicked.connect(self._focus_weakest)
+        controls.addWidget(weak)
         root.addLayout(controls)
 
         self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi,
@@ -108,7 +114,7 @@ class PracticeScreen(QWidget):
     # -- adaptive difficulty ----------------------------------------------
     def _on_adaptive_toggled(self, on: bool) -> None:
         self.diff.setEnabled(not on)
-        self.diff_label.setStyleSheet("" if not on else f"color:{TEXT_MUTED};")
+        self.diff_label.setStyleSheet("" if not on else f"color:{theme.TEXT_MUTED};")
 
     def _on_slider_changed(self, v: int) -> None:
         self.diff_label.setText(f"Difficulty {v/2:.1f}")
@@ -154,6 +160,18 @@ class PracticeScreen(QWidget):
         else:
             step = -0.9
         self._adaptive_diff[etype] = max(lo, min(hi, cur + step))
+
+    @guard("Practice._focus_weakest")
+    def _focus_weakest(self) -> None:
+        """Preset the drill to the scheduler's weakest unlocked skill."""
+        pick = self.ctx.scheduler.next_exercise(source="practice", weak=True)
+        if pick is None:
+            return
+        self.preset(domain=pick.exercise.domain, etype=pick.etype)
+        skill = self.ctx.curriculum.get(pick.skill_id)
+        win = self.window()
+        if skill and hasattr(win, "toast"):
+            win.toast(f"Focusing on: {skill.title}", kind="info")
 
     # -- exercise flow ----------------------------------------------------
     @guard("Practice._new")

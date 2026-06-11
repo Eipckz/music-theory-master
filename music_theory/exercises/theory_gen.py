@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import random
 
-from ..theory.pitch import Note, interval_between, transpose, simple_interval_name
-from ..theory.scales import SCALE_TYPES, Scale, scale_notes, key_signature
+from ..theory.pitch import Note, interval_between, transpose
+from ..theory.scales import scale_notes, key_signature
 from ..theory.chords import (
-    CHORD_QUALITIES, TRIAD_QUALITIES, SEVENTH_QUALITIES, QUALITY_SYMBOL,
-    triad, seventh, figured_bass, roman_to_chord, chord_to_roman, identify_chord,
+    TRIAD_QUALITIES, SEVENTH_QUALITIES, triad, seventh, figured_bass, roman_to_chord,
 )
 from .base import Exercise, InputMode
 from .registry import register
@@ -309,4 +308,112 @@ def roman_numeral_build(difficulty: float, rng: random.Random) -> Exercise:
         reveal={"staff": {"clef": "treble", "notes": ch.members}},
         tags={"staff_prompt": {"clef": "treble", "notes": [], "key_sig": key_signature(Note.parse(key + '4'), mode)},
               "match": "pc"},
+    )
+
+
+@register("note_placement", "theory", "Place the Note")
+def note_placement(difficulty: float, rng: random.Random) -> Exercise:
+    """Reverse note identification: given a name, put it on the staff."""
+    clef = rng.choice(["treble", "bass"]) if difficulty >= 2 else "treble"
+    easy = difficulty < 4
+    # keep inside the on-screen entry piano's range (48..84)
+    if clef == "bass":
+        low, high = (48, 60) if easy else (48, 64)
+    else:
+        low, high = (60, 79) if easy else (55, 84)
+    note = Note.from_midi(U.random_midi(rng, low, high, white_only=easy),
+                          prefer_sharps=True)
+    return Exercise(
+        skill_id="fund.note_names", domain="theory", etype="note_placement",
+        prompt=f"Enter the note {note.name} ({clef} clef). Watch it land on the staff.",
+        input_mode=InputMode.NOTE_ENTRY, answer=[note.midi],
+        explanation=f"{note.name} sits here on the {clef} staff.",
+        difficulty=difficulty,
+        reveal={"staff": {"clef": clef, "notes": [note]}},
+        tags={"staff_prompt": {"clef": clef, "notes": []}},
+    )
+
+
+@register("key_signature_build", "theory", "Build Key Signatures")
+def key_signature_build(difficulty: float, rng: random.Random) -> Exercise:
+    """Forward direction: name a key, pick its signature."""
+    mode = U.pick_mode(rng, difficulty)
+    key = U.pick_key_name(rng, difficulty)
+    sig = key_signature(Note.parse(key + "4"), mode)
+
+    def describe(s: dict) -> str:
+        if s["count"] == 0:
+            return "No sharps or flats"
+        names = ", ".join(s["letters"])
+        plural = "sharp" if s["kind"] == "sharp" else "flat"
+        return f"{s['count']} {plural}{'s' if s['count'] != 1 else ''} ({names})"
+
+    answer = describe(sig)
+    orders = {"sharp": "FCGDAEB", "flat": "BEADGCF"}
+    distractors = []
+    for dc in (sig["count"] - 1, sig["count"] + 1, sig["count"] + 2, 7 - sig["count"]):
+        for kind in ("sharp", "flat"):
+            if 0 <= dc <= 7:
+                d = describe({"count": dc, "kind": kind, "letters": list(orders[kind][:dc])})
+                if d != answer:
+                    distractors.append(d)
+    # same count, opposite kind, is the classic trap
+    flip = "flat" if sig["kind"] == "sharp" else "sharp"
+    if sig["count"]:
+        distractors.insert(0, describe({"count": sig["count"], "kind": flip,
+                                        "letters": list(orders[flip][:sig["count"]])}))
+    return Exercise(
+        skill_id="scales.key_signatures", domain="theory", etype="key_signature_build",
+        prompt=f"Which key signature does {key} {mode} have?",
+        input_mode=InputMode.MULTIPLE_CHOICE, answer=answer,
+        choices=U.choices_from(answer, distractors, rng, k=4),
+        explanation=f"{key} {mode}: {answer}.", difficulty=difficulty,
+        reveal={"staff": {"clef": "treble", "key_sig": sig, "notes": []}},
+    )
+
+
+@register("inversion_build", "theory", "Build Chords in Inversion")
+def inversion_build(difficulty: float, rng: random.Random) -> Exercise:
+    """Construct a triad/seventh in a named inversion; the bass note must be
+    the named chord member (octaves above it are free)."""
+    root = Note.from_midi(U.random_midi(rng, 48, 59, white_only=difficulty < 5),
+                          prefer_sharps=True)
+    if difficulty < 6:
+        quality = rng.choice(TRIAD_QUALITIES if difficulty >= 3 else ["major", "minor"])
+        ch = triad(root, quality)
+    else:
+        quality = rng.choice(SEVENTH_QUALITIES)
+        ch = seventh(root, quality)
+    members = list(ch.members)
+    inv = rng.randint(0, len(members) - 1) if difficulty >= 3 else rng.randint(0, 1)
+    inv_names = {0: "root position", 1: "first inversion", 2: "second inversion",
+                 3: "third inversion"}
+    rotated = members[inv:] + members[:inv]
+    # voice ascending from the bass for the canonical answer
+    voiced = []
+    last = None
+    for n in rotated:
+        m = n.midi
+        while last is not None and m <= last:
+            m += 12
+        voiced.append(m)
+        last = m
+
+    def check(resp, ans) -> bool:
+        r = [int(x) for x in (resp or [])]
+        if len(r) != len(ans):
+            return False
+        if {x % 12 for x in r} != {x % 12 for x in ans}:
+            return False
+        return min(r) % 12 == ans[0] % 12   # the named member is in the bass
+
+    name = f"{ch.symbol} in {inv_names[inv]}"
+    return Exercise(
+        skill_id="chords.inversions", domain="theory", etype="inversion_build",
+        prompt=f"Play {name} (lowest note = the {['root', '3rd', '5th', '7th'][inv]}).",
+        input_mode=InputMode.PIANO, answer=voiced, checker=check,
+        explanation=f"{name}: " + " ".join(Note.from_midi(m).name for m in voiced),
+        difficulty=difficulty,
+        reveal={"highlight": voiced},
+        play={"mode": "chord", "midis": voiced},
     )
