@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
-    QButtonGroup, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
+    QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QStackedWidget,
+    QVBoxLayout, QWidget,
 )
 
 from .. import __app_name__
 from ..errors import guard, set_notifier
+from .theme import TOAST_COLORS
 from .screens.about import AboutScreen
 from .screens.dashboard import DashboardScreen
 from .screens.piano_workspace import PianoWorkspaceScreen
@@ -103,6 +105,14 @@ class MainWindow(QMainWindow):
         self.nav_group.setExclusive(True)
         self._nav_buttons: dict[str, QPushButton] = {}
         for label, name in _NAV:
+            if name == "stats":
+                # divider between daily actions and meta screens
+                div = QFrame()
+                div.setObjectName("NavDivider")
+                div.setFixedHeight(1)
+                lay.addSpacing(6)
+                lay.addWidget(div)
+                lay.addSpacing(6)
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.clicked.connect(lambda _=False, n=name: self.go_to(n))
@@ -128,11 +138,9 @@ class MainWindow(QMainWindow):
             self.session.preset_weak()
         elif hasattr(screen, "on_show"):
             screen.on_show()
-
-
-_TOAST_COLORS = {
-    "info": "#2f3b52", "success": "#2f7d4f", "warning": "#8a5a1f", "error": "#8a2f2f",
-}
+        # move keyboard focus into the new screen so keyboard/screen-reader
+        # users don't stay stranded on the sidebar
+        screen.setFocus(Qt.FocusReason.OtherFocusReason)
 
 
 class _Toast(QLabel):
@@ -142,13 +150,17 @@ class _Toast(QLabel):
         super().__init__(parent)
         self.setWordWrap(True)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setAccessibleName("Notification")
         self.setVisible(False)
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.hide)
 
     def show_message(self, message: str, *, kind: str = "info", msec: int = 2600) -> None:
-        bg = _TOAST_COLORS.get(kind, _TOAST_COLORS["info"])
+        bg = TOAST_COLORS.get(kind, TOAST_COLORS["info"])
+        # warnings/errors stay up longer: 2.6 s is too brief for slow readers
+        if kind in ("warning", "error") and msec <= 2600:
+            msec = 6000
         self.setStyleSheet(
             f"background:{bg}; color:#ffffff; font-size:14px; font-weight:600; "
             "border-radius:10px; padding:10px 16px;"

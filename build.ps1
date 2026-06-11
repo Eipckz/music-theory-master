@@ -28,7 +28,12 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed" }
 $exe = Join-Path $root "dist\MusicTheoryMaster.exe"
 if (Test-Path $exe) {
     $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+    # Publish a checksum next to the exe so recipients can verify their copy
+    # wasn't corrupted or tampered with in transit (email / LMS distribution).
+    $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+    "$hash  MusicTheoryMaster.exe" | Out-File -Encoding ascii (Join-Path $root "dist\MusicTheoryMaster.exe.sha256")
     Write-Host "==> Build complete: $exe ($size MB)" -ForegroundColor Green
+    Write-Host "    SHA-256: $hash (written to dist\MusicTheoryMaster.exe.sha256)" -ForegroundColor Green
 } else {
     throw "expected executable not found at $exe"
 }

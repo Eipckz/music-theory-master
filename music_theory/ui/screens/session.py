@@ -16,6 +16,7 @@ from ...errors import guard
 from ..common import card, heading, subtle
 from ..exercise_player import ExercisePlayer
 from ..lesson_view import LessonView
+from ..theme import GOOD
 
 LESSON_LEN = 10
 
@@ -59,7 +60,8 @@ class SessionScreen(QWidget):
         self.lesson_bar.setFormat("Lesson progress: %v / %m")
         root.addWidget(self.lesson_bar)
 
-        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi)
+        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi,
+                                     settings=self.ctx.settings)
         root.addWidget(self.player, 1)
 
         self.lesson = LessonView(self.ctx.engine)
@@ -195,6 +197,9 @@ class SessionScreen(QWidget):
             xp = 4
         self.ctx.db.add_xp(xp)
         self.lesson_xp += xp
+        # surface the reward in the moment, not just on the dashboard
+        self.player.feedback.setText(
+            self.player.feedback.text() + f"   <b style='color:{GOOD}'>+{xp} XP</b>")
 
         self._touch_streak()
         acc = int(100 * self.correct / self.answered) if self.answered else 0

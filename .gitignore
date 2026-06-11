@@ -21,6 +21,7 @@ music_theory/resources/fluidsynth/
 *.sqlite3
 settings.json
 
-# Build/test caches
-build/
+# Build/test caches (keep the build *scripts*, ignore generated output)
+build/*
+!build/*.py
 .pytest_cache/

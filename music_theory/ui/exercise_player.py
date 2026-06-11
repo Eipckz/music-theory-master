@@ -9,26 +9,42 @@ from typing import Callable, Optional
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
-    QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QWidget,
+    QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
+    QLineEdit, QPushButton, QVBoxLayout, QWidget,
 )
 
 from ..errors import guard
 from ..exercises.base import Exercise, InputMode, render_play
 from ..exercises.teaching import concept_for, hint_for
 from ..theory.pitch import Note
-from .theme import ACCENT, BAD, GOOD
+from .theme import ACCENT, BAD, GOOD, TEXT_MUTED, WARN
 from .widgets import PianoWidget, StaffWidget
 
 _DUR_LABELS = [("\U0001D15D 4", 4.0), ("\U0001D15E 2", 2.0), ("\u2669 1", 1.0),
                ("\u266a \u00bd", 0.5), ("\u266b \u00bc", 0.25), ("\u2669. 1.5", 1.5)]
+_DUR_GLYPHS = {4.0: "\U0001D15D", 2.0: "\U0001D15E", 1.0: "\u2669",
+               0.5: "\u266a", 0.25: "\u266b", 1.5: "\u2669."}
+_DUR_NAMES = {4.0: "Whole note, 4 beats", 2.0: "Half note, 2 beats",
+              1.0: "Quarter note, 1 beat", 0.5: "Eighth note, half a beat",
+              0.25: "Sixteenth note, quarter beat", 1.5: "Dotted quarter, 1.5 beats"}
+_SPEED_OPTIONS = (("0.5\u00d7 speed", 0.5), ("0.75\u00d7 speed", 0.75),
+                  ("1\u00d7 speed", 1.0), ("1.25\u00d7 speed", 1.25))
 
 
 class ExercisePlayer(QWidget):
-    def __init__(self, engine=None, midi=None, parent=None) -> None:
+    def __init__(self, engine=None, midi=None, parent=None, settings=None) -> None:
         super().__init__(parent)
         self.engine = engine
         self.midi = midi
+        # Playback-speed factor: lets learners slow dictation down. Seeded
+        # from the "default_tempo" setting (90 bpm = 1x), adjustable per
+        # session via the speed selector next to the Play button.
+        self._tempo_factor = 1.0
+        if settings is not None:
+            try:
+                self._tempo_factor = max(0.4, min(1.5, float(settings.get("default_tempo", 90)) / 90.0))
+            except Exception:  # noqa: BLE001 - settings must never break the player
+                self._tempo_factor = 1.0
         self.ex: Optional[Exercise] = None
         self._on_answer: Optional[Callable] = None
         self._on_next: Optional[Callable] = None
@@ -58,6 +74,9 @@ class ExercisePlayer(QWidget):
         replay = QShortcut(QKeySequence("R"), self)
         replay.setContext(ctx)
         replay.activated.connect(self._play)
+        back = QShortcut(QKeySequence(Qt.Key.Key_Backspace), self)
+        back.setContext(ctx)
+        back.activated.connect(self._backspace_current)
         for key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             sc = QShortcut(QKeySequence(key), self)
             sc.setContext(ctx)
@@ -65,10 +84,11 @@ class ExercisePlayer(QWidget):
 
     def _build_static(self) -> None:
         self.badge = QLabel("")
-        self.badge.setStyleSheet("color:#8b93a3; font-size:12px; font-weight:600;")
+        self.badge.setObjectName("Badge")
         self.prompt = QLabel("")
         self.prompt.setWordWrap(True)
-        self.prompt.setStyleSheet("font-size:19px; font-weight:600;")
+        self.prompt.setObjectName("Prompt")
+        self.prompt.setAccessibleName("Exercise prompt")
         self.staff = StaffWidget("treble")
         self.audio_row = QWidget()
         self.audio_layout = QHBoxLayout(self.audio_row)
@@ -81,41 +101,53 @@ class ExercisePlayer(QWidget):
         hint_layout.setContentsMargins(0, 0, 0, 0)
         self.hint_btn = QPushButton("\U0001F4A1 Hint")
         self.hint_btn.setObjectName("Secondary")
+        self.hint_btn.setAccessibleName("Show a hint")
         self.hint_btn.clicked.connect(self._show_hint)
         hint_layout.addWidget(self.hint_btn)
         self.hint_label = QLabel("")
         self.hint_label.setWordWrap(True)
-        self.hint_label.setStyleSheet("color:#c9a14a; font-size:14px;")
+        self.hint_label.setObjectName("Hint")
         hint_layout.addWidget(self.hint_label, 1)
         self.hint_row.hide()
+        # feedback sits inside a colored panel (green/red) so the result is
+        # signalled by panel + icon + words, never color alone
+        self.feedback_panel = QFrame()
+        fp_lay = QVBoxLayout(self.feedback_panel)
+        fp_lay.setContentsMargins(14, 10, 14, 10)
         self.feedback = QLabel("")
         self.feedback.setWordWrap(True)
-        self.feedback.setStyleSheet("font-size:15px;")
         self.feedback.setTextFormat(Qt.TextFormat.RichText)
+        self.feedback.setAccessibleName("Feedback")
+        fp_lay.addWidget(self.feedback)
+        self.feedback_panel.hide()
         self.next_btn = QPushButton("Next  \u2192")
         self.next_btn.clicked.connect(self._next)
         self.next_btn.hide()
         for w in (self.badge, self.prompt, self.staff, self.audio_row, self.input_host,
-                  self.hint_row, self.feedback, self.next_btn):
+                  self.hint_row, self.feedback_panel, self.next_btn):
             self._root.addWidget(w)
         self._root.addStretch(1)
 
     # -- load --------------------------------------------------------------
     def set_exercise(self, ex: Exercise, *, on_answer: Callable = None,
                      on_next: Callable = None, badge: str = "",
-                     show_next: bool = True) -> None:
+                     show_next: bool = True, show_feedback: bool = True) -> None:
         self.ex = ex
         self._on_answer = on_answer
         self._on_next = on_next
         self._show_next = show_next
+        self._show_fb = show_feedback
         self._entry, self._seq, self._rhythm = [], [], []
         self._voices, self._voice_idx = [], 0
         self._answered = False
+        self._picked_btn = None
         self._t0 = time.time()
         self.badge.setText(badge or f"{ex.domain.title()}  \u00b7  difficulty {ex.difficulty:.1f}")
         self.prompt.setText(ex.prompt)
         self.feedback.setText("")
+        self.feedback_panel.hide()
         self.next_btn.hide()
+        self.next_btn.setAccessibleDescription("")
         self.was_hinted = False
         self._hint_text = ex.hint or hint_for(ex.etype)
         self.hint_label.setText("")
@@ -149,13 +181,29 @@ class ExercisePlayer(QWidget):
         self._clear_layout(self.audio_layout)
         if self.ex.play:
             label = "\u25b6  Play" if self.ex.domain == "aural" else "\u25b6  Listen"
-            btn = QPushButton(label)
+            btn = QPushButton(f"{label}  (R)")
+            btn.setToolTip("Keyboard shortcut: R")
+            btn.setAccessibleName("Play the audio. Unlimited replays, shortcut R")
             btn.clicked.connect(self._play)
             self.audio_layout.addWidget(btn)
             replay = QPushButton("\u21BB Replay")
             replay.setObjectName("Secondary")
+            replay.setToolTip("Keyboard shortcut: R")
+            replay.setAccessibleName("Replay the audio")
             replay.clicked.connect(self._play)
             self.audio_layout.addWidget(replay)
+            if self.ex.domain == "aural":
+                speed = QComboBox()
+                speed.setAccessibleName("Playback speed")
+                speed.setToolTip("Slow the example down without changing pitch")
+                for text, factor in _SPEED_OPTIONS:
+                    speed.addItem(text, factor)
+                current = min(range(len(_SPEED_OPTIONS)),
+                              key=lambda i: abs(_SPEED_OPTIONS[i][1] - self._tempo_factor))
+                speed.setCurrentIndex(current)
+                speed.currentIndexChanged.connect(
+                    lambda i, box=speed: setattr(self, "_tempo_factor", float(box.itemData(i))))
+                self.audio_layout.addWidget(speed)
             self.audio_layout.addStretch(1)
             self.audio_row.show()
             if self.ex.domain == "aural":
@@ -166,7 +214,11 @@ class ExercisePlayer(QWidget):
     @guard("ExercisePlayer._play")
     def _play(self) -> None:
         if self.engine and self.ex and self.ex.play:
-            render_play(self.engine, self.ex.play)
+            spec = self.ex.play
+            if self._tempo_factor != 1.0 and isinstance(spec, dict):
+                spec = dict(spec)
+                spec["tempo"] = max(20, int(spec.get("tempo", 90) * self._tempo_factor))
+            render_play(self.engine, spec)
 
     # -- input builders ----------------------------------------------------
     def _build_input(self) -> None:
@@ -188,12 +240,21 @@ class ExercisePlayer(QWidget):
 
     def _build_choices(self) -> None:
         self._choice_btns = []
-        for choice in self.ex.choices:
-            b = QPushButton(choice)
+        for i, choice in enumerate(self.ex.choices):
+            # number prefix surfaces the existing 1-9 shortcuts; grading uses
+            # the stored value, never the display text
+            text = f"{i + 1}.   {choice}" if i < 9 else str(choice)
+            b = QPushButton(text)
             b.setObjectName("Choice")
-            b.clicked.connect(lambda _=False, c=choice: self._grade(c))
+            b.setProperty("choiceValue", str(choice))
+            b.setAccessibleName(f"Answer {i + 1}: {choice}")
+            b.clicked.connect(lambda _=False, c=choice, btn=b: self._pick(btn, c))
             self.input_layout.addWidget(b)
             self._choice_btns.append(b)
+
+    def _pick(self, btn: QPushButton, choice) -> None:
+        self._picked_btn = btn
+        self._grade(choice)
 
     def _build_text(self) -> None:
         self.text_edit = QLineEdit()
@@ -209,14 +270,17 @@ class ExercisePlayer(QWidget):
         if given is not None:
             self._entry = [int(given)]
         self.entry_label = QLabel()
+        self.entry_label.setAccessibleName("Notes entered so far")
         self.input_layout.addWidget(self.entry_label)
-        self.entry_piano = PianoWidget(48, 84)
+        self.entry_piano = self._make_entry_piano(48, 84)
         self.entry_piano.notePressed.connect(self._add_entry_note)
         self.input_layout.addWidget(self.entry_piano)
         row = QHBoxLayout()
         back = QPushButton("\u232B Backspace"); back.setObjectName("Secondary")
+        back.setAccessibleName("Delete the last entered note")
         back.clicked.connect(self._backspace_entry)
         clear = QPushButton("Clear"); clear.setObjectName("Secondary")
+        clear.setAccessibleName("Clear all entered notes")
         clear.clicked.connect(self._clear_entry)
         submit = QPushButton("Submit")
         submit.clicked.connect(lambda: self._grade(list(self._entry)))
@@ -224,10 +288,19 @@ class ExercisePlayer(QWidget):
         self.input_layout.addLayout(row)
         self._refresh_entry()
 
+    def _make_entry_piano(self, low: int, high: int) -> PianoWidget:
+        piano = PianoWidget(low, high)
+        piano.setAccessibleName("On-screen piano keyboard")
+        piano.setAccessibleDescription(
+            "Click keys, play a MIDI keyboard, or use computer keys A through L; "
+            "Z and X shift the octave down and up")
+        return piano
+
     def _build_piano(self) -> None:
         self.entry_label = QLabel()
+        self.entry_label.setAccessibleName("Notes entered so far")
         self.input_layout.addWidget(self.entry_label)
-        self.entry_piano = PianoWidget(48, 84)
+        self.entry_piano = self._make_entry_piano(48, 84)
         self.entry_piano.notePressed.connect(self._add_entry_note)
         self.input_layout.addWidget(self.entry_piano)
         if self.midi is not None:
@@ -237,6 +310,7 @@ class ExercisePlayer(QWidget):
                 pass
         row = QHBoxLayout()
         clear = QPushButton("Clear"); clear.setObjectName("Secondary")
+        clear.setAccessibleName("Clear all entered notes")
         clear.clicked.connect(self._clear_entry)
         submit = QPushButton("Submit")
         submit.clicked.connect(lambda: self._grade(list(self._entry)))
@@ -246,15 +320,18 @@ class ExercisePlayer(QWidget):
 
     def _build_rhythm(self) -> None:
         self.entry_label = QLabel()
+        self.entry_label.setAccessibleName("Rhythm entered so far")
         self.input_layout.addWidget(self.entry_label)
         grid = QHBoxLayout()
         for label, val in _DUR_LABELS:
             b = QPushButton(label); b.setObjectName("Choice")
+            b.setAccessibleName(_DUR_NAMES.get(val, label))
             b.clicked.connect(lambda _=False, v=val: self._add_rhythm(v))
             grid.addWidget(b)
         self.input_layout.addLayout(grid)
         row = QHBoxLayout()
         back = QPushButton("\u232B"); back.setObjectName("Secondary")
+        back.setAccessibleName("Delete the last duration")
         back.clicked.connect(self._backspace_rhythm)
         submit = QPushButton("Submit")
         submit.clicked.connect(lambda: self._grade(list(self._rhythm)))
@@ -274,6 +351,7 @@ class ExercisePlayer(QWidget):
         self.input_layout.addLayout(grid)
         row = QHBoxLayout()
         back = QPushButton("\u232B"); back.setObjectName("Secondary")
+        back.setAccessibleName("Delete the last item")
         back.clicked.connect(self._backspace_seq)
         submit = QPushButton("Submit")
         submit.clicked.connect(lambda: self._grade(list(self._seq)))
@@ -305,8 +383,9 @@ class ExercisePlayer(QWidget):
         self.input_layout.addLayout(sel_row)
         self.entry_label = QLabel()
         self.entry_label.setTextFormat(Qt.TextFormat.RichText)
+        self.entry_label.setAccessibleName("Notes entered per voice")
         self.input_layout.addWidget(self.entry_label)
-        self.entry_piano = PianoWidget(36, 84)
+        self.entry_piano = self._make_entry_piano(36, 84)
         self.entry_piano.notePressed.connect(self._add_voice_note)
         self.input_layout.addWidget(self.entry_piano)
         if self.midi is not None:
@@ -316,8 +395,10 @@ class ExercisePlayer(QWidget):
                 pass
         row = QHBoxLayout()
         back = QPushButton("⌫ Backspace"); back.setObjectName("Secondary")
+        back.setAccessibleName("Delete the last note in the active voice")
         back.clicked.connect(self._backspace_voice)
         clear = QPushButton("Clear voice"); clear.setObjectName("Secondary")
+        clear.setAccessibleName("Clear the active voice")
         clear.clicked.connect(self._clear_voice)
         submit = QPushButton("Submit all voices")
         submit.clicked.connect(lambda: self._grade([list(v) for v in self._voices]))
@@ -373,9 +454,9 @@ class ExercisePlayer(QWidget):
         rows = []
         for i, (nm, v) in enumerate(zip(names, self._voices)):
             text = " ".join(Note.from_midi(m).name for m in v) or "(empty)"
-            count = f"  <span style='color:#8b93a3'>[{len(v)}/{expected}]</span>" if expected else ""
+            count = f"  <span style='color:{TEXT_MUTED}'>[{len(v)}/{expected}]</span>" if expected else ""
             if i == self._voice_idx:
-                rows.append(f"<b style='color:{ACCENT}'>▶ {nm}:</b>  {text}{count}")
+                rows.append(f"<b style='color:{ACCENT}'>▶ {nm} (entering):</b>  {text}{count}")
             else:
                 rows.append(f"<b>{nm}:</b>  {text}{count}")
         self.entry_label.setText("<br>".join(rows))
@@ -397,7 +478,10 @@ class ExercisePlayer(QWidget):
         self._add_entry_note(midi)
 
     def _backspace_entry(self) -> None:
-        if self._entry:
+        # never delete the given starting note in NOTE_ENTRY exercises
+        floor = 1 if (self.ex is not None and self.ex.input_mode == InputMode.NOTE_ENTRY
+                      and self.ex.tags.get("given_first") is not None) else 0
+        if len(self._entry) > floor:
             self._entry.pop()
             self._refresh_entry()
 
@@ -408,8 +492,15 @@ class ExercisePlayer(QWidget):
 
     def _refresh_entry(self) -> None:
         notes = [Note.from_midi(m) for m in self._entry]
-        self.entry_label.setText("Your entry:  " + " ".join(n.name for n in notes) if notes
-                                 else "Your entry:  (play/click notes)")
+        if notes:
+            parts = [n.name for n in notes]
+            if (self.ex is not None and self.ex.input_mode == InputMode.NOTE_ENTRY
+                    and self.ex.tags.get("given_first") is not None):
+                parts[0] = f"<span style='color:{TEXT_MUTED}'>{parts[0]} (given)</span>"
+            self.entry_label.setText("Your entry:  " + " ".join(parts))
+        else:
+            self.entry_label.setText(
+                f"Your entry:  <span style='color:{TEXT_MUTED}'>(play or click notes)</span>")
         if self.ex.tags.get("staff_prompt") is not None and self.ex.input_mode == InputMode.NOTE_ENTRY:
             self.staff.show()
             self.staff.set_notes(notes)
@@ -429,7 +520,8 @@ class ExercisePlayer(QWidget):
 
     def _refresh_rhythm(self) -> None:
         total = sum(self._rhythm)
-        self.entry_label.setText(f"Rhythm:  {', '.join(str(v) for v in self._rhythm) or '(empty)'}   "
+        glyphs = "  ".join(_DUR_GLYPHS.get(v, str(v)) for v in self._rhythm)
+        self.entry_label.setText(f"Rhythm:  {glyphs or '(empty)'}   "
                                  f"[{total:g}/{self.ex.tags.get('beats', 4)} beats]")
 
     def _add_seq(self, label: str) -> None:
@@ -454,9 +546,25 @@ class ExercisePlayer(QWidget):
         self.hint_btn.hide()
         correct = self.ex.grade(response)
         elapsed_ms = int((time.time() - self._t0) * 1000)
-        self._show_feedback(correct)
+        if getattr(self, "_show_fb", True):
+            self._show_feedback(correct)
+        else:
+            self._show_neutral_feedback()
         if self._on_answer:
             self._on_answer(correct, elapsed_ms)
+
+    def _show_neutral_feedback(self) -> None:
+        """Assessment mode (placement): acknowledge without revealing
+        right/wrong, so there is nothing time-pressured to read."""
+        self.feedback.setText("Answer recorded ✓")
+        self.feedback_panel.setObjectName("Card")
+        style = self.feedback_panel.style()
+        style.unpolish(self.feedback_panel)
+        style.polish(self.feedback_panel)
+        self.feedback_panel.show()
+        if hasattr(self, "_choice_btns"):
+            for b in self._choice_btns:
+                b.setEnabled(False)
 
     def _answer_text(self) -> str:
         if self.ex.input_mode in (InputMode.MULTIPLE_CHOICE, InputMode.TEXT):
@@ -469,8 +577,9 @@ class ExercisePlayer(QWidget):
     def _show_feedback(self, correct: bool) -> None:
         color = GOOD if correct else BAD
         if correct:
+            plain = f"Correct! {self.ex.explanation}".strip()
             self.feedback.setText(
-                f"<b style='color:{color}'>Correct!</b>  {self.ex.explanation}")
+                f"<b style='color:{color}'>✓ Correct!</b>  {self.ex.explanation}")
         else:
             parts = []
             ans = self._answer_text()
@@ -481,8 +590,16 @@ class ExercisePlayer(QWidget):
             teach = self.ex.teach or concept_for(self.ex.etype)
             body = " ".join(parts)
             if teach:
-                body += (f"<br><span style='color:#9aa3b2; font-size:14px;'>{teach}</span>")
-            self.feedback.setText(f"<b style='color:{color}'>Not quite.</b>  {body}")
+                body += (f"<br><span style='color:{TEXT_MUTED}'>{teach}</span>")
+            self.feedback.setText(f"<b style='color:{color}'>✗ Not quite.</b>  {body}")
+            plain = "Not quite. " + " ".join(
+                [f"The answer was {ans}." if ans else "", self.ex.explanation or "",
+                 teach or ""]).strip()
+        self.feedback_panel.setObjectName("FeedbackGood" if correct else "FeedbackBad")
+        style = self.feedback_panel.style()
+        style.unpolish(self.feedback_panel)
+        style.polish(self.feedback_panel)
+        self.feedback_panel.show()
         # reveal
         rev = self.ex.reveal or {}
         if "staff" in rev:
@@ -492,14 +609,25 @@ class ExercisePlayer(QWidget):
             entered = [Note.from_midi(m) for m in self._entry] if self._entry else []
             self.staff.set_notes(entered, ghost=rev["staff"].get("notes", []))
         if "highlight" in rev and hasattr(self, "entry_piano"):
-            self.entry_piano.flash(rev["highlight"], GOOD if correct else "#c98a3a")
+            self.entry_piano.flash(rev["highlight"], GOOD if correct else WARN)
         if hasattr(self, "_choice_btns"):
+            answer = str(self.ex.answer)
             for b in self._choice_btns:
                 b.setEnabled(False)
-                if b.text() == str(self.ex.answer):
-                    b.setStyleSheet(f"background:{GOOD}; color:white;")
+                if b.property("choiceValue") == answer:
+                    b.setText("✓  " + b.text())
+                    b.setProperty("result", "correct")
+                elif b is self._picked_btn and not correct:
+                    b.setText("✗  " + b.text())
+                    b.setProperty("result", "wrong")
+                b.style().unpolish(b)
+                b.style().polish(b)
         if self._show_next:
             self.next_btn.show()
+            # PyQt6 has no QAccessible.announce; instead the result rides on
+            # the focus change every answer already triggers, so screen
+            # readers speak it when Next takes focus.
+            self.next_btn.setAccessibleDescription(plain)
             self.next_btn.setFocus()
 
     @guard("ExercisePlayer._next")
@@ -521,10 +649,30 @@ class ExercisePlayer(QWidget):
         elif not self._answered:
             self._submit_current()
 
+    def _backspace_current(self) -> None:
+        if self._answered or self.ex is None:
+            return
+        mode = self.ex.input_mode
+        if mode in (InputMode.NOTE_ENTRY, InputMode.PIANO):
+            self._backspace_entry()
+        elif mode == InputMode.RHYTHM:
+            self._backspace_rhythm()
+        elif mode == InputMode.SEQUENCE:
+            self._backspace_seq()
+        elif mode == InputMode.MULTI_VOICE:
+            self._backspace_voice()
+
     def _submit_current(self) -> None:
         if self.ex is None:
             return
         mode = self.ex.input_mode
+        if mode == InputMode.MULTIPLE_CHOICE:
+            # Enter activates the focused choice button (Space already works,
+            # but Enter is what keyboard users expect)
+            w = QApplication.focusWidget()
+            if w in getattr(self, "_choice_btns", []):
+                w.click()
+            return
         if mode == InputMode.TEXT and hasattr(self, "text_edit"):
             self._grade(self.text_edit.text())
         elif mode in (InputMode.NOTE_ENTRY, InputMode.PIANO):

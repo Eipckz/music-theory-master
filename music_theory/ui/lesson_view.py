@@ -29,16 +29,16 @@ class LessonView(QWidget):
         root.setSpacing(14)
 
         self.kicker = QLabel("")
-        self.kicker.setStyleSheet("color:#5b8def; font-size:13px; font-weight:700;")
+        self.kicker.setObjectName("Kicker")
         root.addWidget(self.kicker)
         self.title = QLabel("")
         self.title.setWordWrap(True)
-        self.title.setStyleSheet("font-size:22px; font-weight:800;")
+        self.title.setObjectName("H2")
         root.addWidget(self.title)
         self.body = QLabel("")
         self.body.setWordWrap(True)
         self.body.setTextFormat(Qt.TextFormat.RichText)
-        self.body.setStyleSheet("font-size:16px; line-height:150%;")
+        self.body.setObjectName("BodyLg")
         root.addWidget(self.body)
 
         self.staff = StaffWidget("treble")
@@ -46,6 +46,7 @@ class LessonView(QWidget):
         root.addWidget(self.staff)
 
         self.play_btn = QPushButton("▶  Listen")
+        self.play_btn.setAccessibleName("Play the musical example")
         self.play_btn.clicked.connect(self._play)
         self.play_btn.hide()
         root.addWidget(self.play_btn, 0, Qt.AlignmentFlag.AlignLeft)
@@ -57,7 +58,8 @@ class LessonView(QWidget):
         self.back_btn.setObjectName("Secondary")
         self.back_btn.clicked.connect(self._back)
         self.progress = QLabel("")
-        self.progress.setStyleSheet("color:#8b93a3;")
+        self.progress.setObjectName("Subtle")
+        self.progress.setAccessibleName("Lesson page progress")
         self.next_btn = QPushButton("Continue →")
         self.next_btn.clicked.connect(self._next)
         nav.addWidget(self.back_btn)
@@ -128,6 +130,7 @@ class LessonView(QWidget):
         last = self.page_idx == len(self.pages) - 1
         self.next_btn.setText("Start practicing →" if last else "Continue →")
         self.progress.setText(f"{self.page_idx + 1} / {len(self.pages)}")
+        self.next_btn.setFocus()
         # auto-play examples so the concept is heard, not just read
         if page.play and self.engine:
             self._play()

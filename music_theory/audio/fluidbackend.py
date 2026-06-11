@@ -53,17 +53,35 @@ def _safe_import_fluidsynth(vendored_bin: Path):
             os.add_dll_directory = orig  # type: ignore[assignment]
 
 
+# SoundFonts are parsed by native FluidSynth code, so reject anything that
+# is not a plausible SF2/SF3 container before it ever reaches the DLL.
+_SF_MAX_BYTES = 1_000_000_000  # generous: largest common GM banks are ~500 MB
+
+
+def _looks_like_soundfont(p: Path) -> bool:
+    try:
+        size = p.stat().st_size
+        if size < 1024 or size > _SF_MAX_BYTES:
+            return False
+        with open(p, "rb") as fh:
+            head = fh.read(64)
+    except OSError:
+        return False
+    return head[:4] == b"RIFF" and b"sfbk" in head
+
+
 def find_soundfont(preferred: str = "") -> Optional[Path]:
     if preferred:
         p = Path(preferred)
-        if p.is_file() and p.suffix.lower() in (".sf2", ".sf3"):
+        if (p.is_file() and p.suffix.lower() in (".sf2", ".sf3")
+                and _looks_like_soundfont(p)):
             return p
     d = soundfonts_dir()
     if d.exists():
         for ext in ("*.sf2", "*.sf3"):
-            hits = sorted(d.glob(ext))
-            if hits:
-                return hits[0]
+            for hit in sorted(d.glob(ext)):
+                if _looks_like_soundfont(hit):
+                    return hit
     return None
 
 

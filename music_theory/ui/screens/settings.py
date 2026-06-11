@@ -69,11 +69,15 @@ class SettingsScreen(QWidget):
         af.addRow("Output device", self.device_combo)
 
         self.vol = QSlider(Qt.Orientation.Horizontal)
+        self.vol.setAccessibleName("Master volume")
         self.vol.setRange(0, 100)
         self.vol.setValue(int(s.get("master_volume", 0.8) * 100))
         af.addRow("Volume", self.vol)
 
         self.tempo = QSpinBox()
+        self.tempo.setAccessibleName("Default tempo")
+        self.tempo.setToolTip("Playback speed for listening exercises (90 = normal). "
+                              "You can also change speed next to the Play button.")
         self.tempo.setRange(40, 220)
         self.tempo.setValue(int(s.get("default_tempo", 90)))
         af.addRow("Default tempo", self.tempo)
@@ -106,7 +110,7 @@ class SettingsScreen(QWidget):
         dc.addWidget(subtle("Reset all learning progress: mastery, XP, streak, "
                             "achievements, and placement. This cannot be undone."))
         reset_btn = QPushButton("Reset progress\u2026")
-        reset_btn.setObjectName("Secondary")
+        reset_btn.setObjectName("Danger")
         reset_btn.clicked.connect(self._reset_progress)
         dc.addWidget(reset_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         root.addWidget(danger_card)

@@ -36,7 +36,8 @@ class PlacementScreen(QWidget):
         ta.addWidget(self.progress)
         self.domain_label = subtle("")
         ta.addWidget(self.domain_label)
-        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi)
+        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi,
+                                     settings=self.ctx.settings)
         ta.addWidget(self.player, 1)
         self.test_area.hide()
         root.addWidget(self.test_area, 1)
@@ -62,9 +63,23 @@ class PlacementScreen(QWidget):
         self.start_btn = QPushButton("Start placement")
         self.start_btn.clicked.connect(self._start)
         row.addWidget(self.start_btn)
+        self.skip_btn = QPushButton("Skip — start from the beginning")
+        self.skip_btn.setObjectName("Secondary")
+        self.skip_btn.setToolTip("No test: begin the course at the first skills. "
+                                 "You can take the placement test any time.")
+        self.skip_btn.clicked.connect(self._skip)
+        row.addWidget(self.skip_btn)
         row.addStretch(1)
         lay.addLayout(row)
         return frame
+
+    @guard("Placement._skip")
+    def _skip(self) -> None:
+        """Beginners shouldn't be forced through a multi-domain test: start
+        the course at the very beginning (never an overestimate)."""
+        self.ctx.settings.set("placement_done", True)
+        if self.navigate:
+            self.navigate("session")
 
     def _reset_to_intro(self) -> None:
         """Restore the intro/start view so the test can always be (re)started."""
@@ -97,8 +112,13 @@ class PlacementScreen(QWidget):
             self._finish()
             return
         dom = self.pt.current_domain
-        self.domain_label.setText(f"Assessing: <b>{dom.title()}</b>")
-        self.player.set_exercise(ex, on_answer=self._on_answer, show_next=False)
+        self.domain_label.setText(
+            f"Question {done + 1} of about {total}  ·  Assessing: <b>{dom.title()}</b>")
+        # show_feedback=False: during assessment we acknowledge the answer
+        # without revealing right/wrong, so nothing must be read against a
+        # timer and the staircase isn't telegraphed
+        self.player.set_exercise(ex, on_answer=self._on_answer, show_next=False,
+                                 show_feedback=False)
 
     @guard("Placement._on_answer")
     def _on_answer(self, correct: bool, response_ms: int) -> None:
@@ -122,7 +142,7 @@ class PlacementScreen(QWidget):
             row = QHBoxLayout()
             name = QLabel(f"<b>{domain.title()}</b>")
             lvl = QLabel(info["level"])
-            lvl.setStyleSheet("color:#5b8def; font-weight:700;")
+            lvl.setObjectName("AccentValue")
             row.addWidget(name)
             row.addStretch(1)
             row.addWidget(lvl)

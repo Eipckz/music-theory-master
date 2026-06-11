@@ -16,6 +16,7 @@ from ...errors import guard
 from ...exercises.registry import all_types, safe_generate, title_of, types_for_domain, domain_of
 from ..common import heading, subtle
 from ..exercise_player import ExercisePlayer
+from ..theme import TEXT_MUTED
 
 _DOMAINS = [("All", ""), ("Theory", "theory"), ("Aural", "aural"), ("Piano", "piano")]
 
@@ -38,6 +39,7 @@ class PracticeScreen(QWidget):
 
         controls = QHBoxLayout()
         self.domain_combo = QComboBox()
+        self.domain_combo.setAccessibleName("Practice area")
         for label, _ in _DOMAINS:
             self.domain_combo.addItem(label)
         self.domain_combo.currentIndexChanged.connect(self._refill_types)
@@ -45,6 +47,7 @@ class PracticeScreen(QWidget):
         controls.addWidget(self.domain_combo)
 
         self.type_combo = QComboBox()
+        self.type_combo.setAccessibleName("Practice topic")
         controls.addWidget(QLabel("Topic:"))
         controls.addWidget(self.type_combo, 1)
 
@@ -55,6 +58,7 @@ class PracticeScreen(QWidget):
         controls.addWidget(self.adaptive_chk)
 
         self.diff = QSlider(Qt.Orientation.Horizontal)
+        self.diff.setAccessibleName("Difficulty")
         self.diff.setMinimum(0)
         self.diff.setMaximum(20)
         self.diff.setValue(6)
@@ -68,7 +72,8 @@ class PracticeScreen(QWidget):
         controls.addWidget(start)
         root.addLayout(controls)
 
-        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi)
+        self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi,
+                                     settings=self.ctx.settings)
         root.addWidget(self.player, 1)
         self._refill_types()
         self._on_adaptive_toggled(self.adaptive_chk.isChecked())
@@ -103,7 +108,7 @@ class PracticeScreen(QWidget):
     # -- adaptive difficulty ----------------------------------------------
     def _on_adaptive_toggled(self, on: bool) -> None:
         self.diff.setEnabled(not on)
-        self.diff_label.setStyleSheet("" if not on else "color:#8b93a3;")
+        self.diff_label.setStyleSheet("" if not on else f"color:{TEXT_MUTED};")
 
     def _on_slider_changed(self, v: int) -> None:
         self.diff_label.setText(f"Difficulty {v/2:.1f}")

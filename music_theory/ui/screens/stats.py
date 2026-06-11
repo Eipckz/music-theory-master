@@ -86,7 +86,7 @@ class StatsScreen(QWidget):
         else:
             tag = "not started"
         lab = QLabel(tag)
-        lab.setStyleSheet("color:#8b93a3; font-size:12px;")
+        lab.setObjectName("Badge")
         lab.setMinimumWidth(120)
         lab.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(lab)

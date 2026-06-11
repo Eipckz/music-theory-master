@@ -12,6 +12,11 @@ from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPen
 from PyQt6.QtWidgets import QWidget
 
+from ..theme import ACCENT_DIM, GOOD
+
+_PRESSED_WHITE = "#aac4f7"   # light accent tint
+_PRESSED_BLACK = ACCENT_DIM
+
 _WHITE_PCS = {0, 2, 4, 5, 7, 9, 11}
 _BLACK_PCS = {1, 3, 6, 8, 10}
 # Offset of each black key relative to the white key it follows.
@@ -42,6 +47,8 @@ class PianoWidget(QWidget):
         self.show_labels = True
         self.setMinimumHeight(110)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName("Piano keyboard")
+        self.setToolTip("Computer keys A–L play notes · Z / X shift the octave down / up")
         self._white_midis = [m for m in range(low_midi, high_midi + 1) if m % 12 in _WHITE_PCS]
 
     # -- public API -------------------------------------------------------
@@ -50,7 +57,7 @@ class PianoWidget(QWidget):
         self._white_midis = [m for m in range(low_midi, high_midi + 1) if m % 12 in _WHITE_PCS]
         self.update()
 
-    def highlight(self, midis, color: str = "#4caf50") -> None:
+    def highlight(self, midis, color: str = GOOD) -> None:
         c = QColor(color)
         for m in midis:
             self._highlight[m] = c
@@ -60,7 +67,7 @@ class PianoWidget(QWidget):
         self._highlight.clear()
         self.update()
 
-    def flash(self, midis, color: str = "#4caf50") -> None:
+    def flash(self, midis, color: str = GOOD) -> None:
         self.clear_highlight()
         self.highlight(midis, color)
 
@@ -95,20 +102,20 @@ class PianoWidget(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         font = QFont()
-        font.setPointSize(7)
+        font.setPointSize(9)
         p.setFont(font)
         for i, wm in enumerate(self._white_midis):
             rect = self._white_rect(i)
             if wm in self._highlight:
                 p.fillRect(rect, self._highlight[wm])
             elif wm in self._pressed:
-                p.fillRect(rect, QColor("#90caf9"))
+                p.fillRect(rect, QColor(_PRESSED_WHITE))
             else:
                 p.fillRect(rect, QColor("#fafafa"))
             p.setPen(QPen(QColor("#444"), 1))
             p.drawRect(rect)
             if self.show_labels and wm % 12 == 0:
-                p.setPen(QColor("#888"))
+                p.setPen(QColor("#555555"))
                 p.drawText(
                     rect.adjusted(2, 0, -2, -4),
                     Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
@@ -119,7 +126,7 @@ class PianoWidget(QWidget):
             if bm in self._highlight:
                 p.fillRect(rect, self._highlight[bm].darker(110))
             elif bm in self._pressed:
-                p.fillRect(rect, QColor("#1565c0"))
+                p.fillRect(rect, QColor(_PRESSED_BLACK))
             else:
                 p.fillRect(rect, QColor("#202020"))
             p.setPen(QPen(QColor("#000"), 1))
@@ -148,6 +155,15 @@ class PianoWidget(QWidget):
 
     def keyPressEvent(self, e) -> None:
         if e.isAutoRepeat():
+            return
+        # Z / X shift the computer-keyboard octave so the whole displayed
+        # range is reachable without a mouse
+        if e.key() == Qt.Key.Key_Z:
+            self._kb_base = max(self.low_midi - self.low_midi % 12, self._kb_base - 12)
+            return
+        if e.key() == Qt.Key.Key_X:
+            if self._kb_base + 12 <= self.high_midi:
+                self._kb_base += 12
             return
         off = _KEYMAP.get(e.key())
         if off is not None:

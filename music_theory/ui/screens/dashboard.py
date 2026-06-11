@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 
 from ...achievements import unlocked_titles
 from ...adaptive import MasteryModel, level_for_rating
-from ..common import card, heading, subtle
+from ..common import card, card_title, heading, subtle
 
 DAILY_GOAL_XP = 50
 
@@ -24,6 +24,8 @@ class DashboardScreen(QWidget):
         root.setSpacing(16)
 
         self.greeting = heading("Welcome")
+        # the profile name is user input - never let Qt auto-detect it as rich text
+        self.greeting.setTextFormat(Qt.TextFormat.PlainText)
         root.addWidget(self.greeting)
         self.tagline = subtle("")
         root.addWidget(self.tagline)
@@ -31,15 +33,15 @@ class DashboardScreen(QWidget):
         stats = QHBoxLayout()
         self.streak_card, sc = card("Streak")
         self.streak_val = QLabel("0 days")
-        self.streak_val.setStyleSheet("font-size:26px; font-weight:800;")
+        self.streak_val.setObjectName("StatValue")
         sc.addWidget(self.streak_val)
         self.xp_card, xc = card("Total XP")
         self.xp_val = QLabel("0")
-        self.xp_val.setStyleSheet("font-size:26px; font-weight:800;")
+        self.xp_val.setObjectName("StatValue")
         xc.addWidget(self.xp_val)
         self.acc_card, ac = card("Accuracy")
         self.acc_val = QLabel("-")
-        self.acc_val.setStyleSheet("font-size:26px; font-weight:800;")
+        self.acc_val.setObjectName("StatValue")
         ac.addWidget(self.acc_val)
         stats.addWidget(self.streak_card)
         stats.addWidget(self.xp_card)
@@ -107,13 +109,15 @@ class DashboardScreen(QWidget):
             w = self.ach_layout.takeAt(0).widget()
             if w:
                 w.setParent(None)
-        ach_title = QLabel("Achievements")
-        ach_title.setStyleSheet("font-size:16px; font-weight:700;")
-        self.ach_layout.addWidget(ach_title)
+        self.ach_layout.addWidget(card_title("Achievements"))
         titles = unlocked_titles(self.ctx.db)
         if titles:
-            for t in titles[-6:]:
-                self.ach_layout.addWidget(QLabel("\U0001F3C6  " + t))
+            recent = "      ".join("\U0001F3C6  " + t for t in titles[-3:])
+            if len(titles) > 3:
+                recent += f"      (+{len(titles) - 3} more)"
+            lbl = QLabel(recent)
+            lbl.setWordWrap(True)
+            self.ach_layout.addWidget(lbl)
         else:
             self.ach_layout.addWidget(subtle("No achievements yet - complete a lesson to earn your first!"))
 
@@ -122,9 +126,8 @@ class DashboardScreen(QWidget):
             w = item.widget()
             if w and w is not self.levels_card:
                 w.setParent(None)
-        title = QLabel("Your levels")
-        title.setStyleSheet("font-size:16px; font-weight:700;")
-        self.levels_layout.addWidget(title)
+        self.levels_layout.addWidget(card_title("Your levels"))
+        row = QHBoxLayout()
         for domain in ("theory", "aural", "piano"):
             skills = [s.id for s in self.ctx.curriculum.by_domain(domain) if s.schedulable]
             rating = MasteryModel.overall_rating(self.ctx.db, skills)
@@ -132,16 +135,16 @@ class DashboardScreen(QWidget):
                 level = placement[domain]["level"]
             else:
                 level = level_for_rating(rating)
-            row = QHBoxLayout()
-            lbl = QLabel(domain.title())
+            lbl = QLabel(domain.title() + ":")
             val = QLabel(level)
-            val.setStyleSheet("color:#5b8def; font-weight:700;")
+            val.setObjectName("AccentValue")
             row.addWidget(lbl)
-            row.addStretch(1)
             row.addWidget(val)
-            holder = QWidget()
-            holder.setLayout(row)
-            self.levels_layout.addWidget(holder)
+            row.addSpacing(24)
+        row.addStretch(1)
+        holder = QWidget()
+        holder.setLayout(row)
+        self.levels_layout.addWidget(holder)
 
         summ = self.ctx.scheduler.progress_summary()
         self.prog_bar.setMaximum(summ["total"])

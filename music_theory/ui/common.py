@@ -13,20 +13,24 @@ def card(title: str = "") -> tuple[QFrame, QVBoxLayout]:
     lay.setContentsMargins(18, 16, 18, 16)
     lay.setSpacing(10)
     if title:
-        lbl = QLabel(title)
-        lbl.setStyleSheet("font-size:16px; font-weight:700;")
-        lay.addWidget(lbl)
+        lay.addWidget(card_title(title))
     return frame, lay
+
+
+def card_title(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setObjectName("H3")
+    return lbl
 
 
 def heading(text: str, size: int = 24) -> QLabel:
     lbl = QLabel(text)
-    lbl.setStyleSheet(f"font-size:{size}px; font-weight:800;")
+    lbl.setObjectName("H1")
     return lbl
 
 
 def subtle(text: str) -> QLabel:
     lbl = QLabel(text)
-    lbl.setStyleSheet("color:#8b93a3;")
+    lbl.setObjectName("Subtle")
     lbl.setWordWrap(True)
     return lbl

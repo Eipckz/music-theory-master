@@ -66,7 +66,8 @@ class PianoWorkspaceScreen(QWidget):
         root.addLayout(ctrl)
 
         self.readout = QLabel("")
-        self.readout.setStyleSheet("font-size:15px; color:#cfd4de;")
+        self.readout.setObjectName("BodyLg")
+        self.readout.setAccessibleName("Played notes readout")
         root.addWidget(self.readout)
 
         self.piano = PianoWidget(36, 96)

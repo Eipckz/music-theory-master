@@ -11,6 +11,7 @@ from PyQt6.QtGui import QColor, QFont, QPainter, QPen
 from PyQt6.QtWidgets import QWidget
 
 from ...theory.pitch import LETTERS, Note
+from ..theme import STAFF_PAPER
 
 # Diatonic index of the bottom staff line per clef.
 _BOTTOM_REF = {"treble": Note("E", 0, 4).diatonic_index, "bass": Note("G", 0, 2).diatonic_index}
@@ -37,6 +38,7 @@ class StaffWidget(QWidget):
         self.prefer_sharps = True
         self.line_spacing = 12
         self.setMinimumHeight(170)
+        self.setAccessibleName("Music staff")
 
     # -- public API -------------------------------------------------------
     def set_clef(self, clef: str) -> None:
@@ -46,6 +48,11 @@ class StaffWidget(QWidget):
     def set_notes(self, notes, ghost=None) -> None:
         self.notes = [self._as_note(n) for n in notes]
         self.ghost_notes = [self._as_note(n) for n in (ghost or [])]
+        # text alternative for screen readers, covering every call site
+        desc = "Notes: " + (" ".join(n.name for n in self.notes) or "none")
+        if self.ghost_notes:
+            desc += ".  Answer: " + " ".join(n.name for n in self.ghost_notes)
+        self.setAccessibleDescription(desc)
         self.update()
 
     def clear(self) -> None:
@@ -91,7 +98,11 @@ class StaffWidget(QWidget):
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        p.fillRect(self.rect(), QColor("#fbfbf7"))
+        # warm "paper" card with rounded corners so the staff sits like a
+        # panel instead of a raw white rectangle in the dark layout
+        p.setBrush(QColor(STAFF_PAPER))
+        p.setPen(QPen(QColor("#2c323c"), 1))
+        p.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 8, 8)
         ls = self.line_spacing
         left = 12
         right = self.width() - 12
@@ -140,7 +151,8 @@ class StaffWidget(QWidget):
                    glyph_font: QFont, ghost: bool) -> None:
         y = self._y_for(note, clef, bottom_y)
         ls = self.line_spacing
-        color = QColor("#bbbbbb") if ghost else QColor("#111")
+        # ghost (answer) notes need >=3:1 against the paper (WCAG 1.4.11)
+        color = QColor("#8a8a8a") if ghost else QColor("#111")
         # ledger lines
         steps = note.diatonic_index - _BOTTOM_REF[clef]
         p.setPen(QPen(color, 1))
