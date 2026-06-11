@@ -21,28 +21,18 @@ hashes before use.
 - Release artifacts ship with SHA-256 checksums; verify your download against
   the `.sha256` file on the Releases page.
 
+## Supported versions
+
+Only the latest release receives security updates.
+
+| Version | Supported |
+| ------- | --------- |
+| 1.x (latest release) | yes |
+| older | no |
+
 ## Reporting a vulnerability
 
 Please open a private security advisory on GitHub
 (Security tab -> "Report a vulnerability") or contact the maintainer
 (@Eipckz). Expect an initial response within a week. Please do not open
 public issues for unpatched vulnerabilities.
-## Supported Versions
-
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
-
-## Reporting a Vulnerability
-
-Use this section to tell people how to report a vulnerability.
-
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.

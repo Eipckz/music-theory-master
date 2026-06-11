@@ -12,13 +12,20 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 
+from music_theory.errors import install_excepthook
 from music_theory.storage import Database, Settings
 
 # Pin the default test profile to the pure-python synth. The FluidSynth
-# backend loads in a background thread and its native teardown is the known
-# 0xC0000409-at-exit flake; tests that target FluidSynth explicitly still
-# construct it with their own settings.
+# backend loads in a background thread and its native teardown can crash at
+# process exit; tests that target FluidSynth explicitly still construct it
+# with their own settings.
 Settings().set("audio_backend", "synth")
+
+# PyQt6 calls qFatal() (process abort, 0xC0000409 on Windows) when a Python
+# exception escapes a slot or virtual *and* sys.excepthook is the default.
+# The app installs this hook in main(); tests must match, so a stray slot
+# exception surfaces as a logged traceback instead of killing the whole run.
+install_excepthook()
 
 
 @pytest.fixture

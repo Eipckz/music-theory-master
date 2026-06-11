@@ -24,6 +24,11 @@ def window(qapp):
     win.show()
     qapp.processEvents()
     yield win
+    # deterministic teardown (see test_features_gui.window): close + delete
+    # the window before the context, never leave it to the GC
+    win.close()
+    win.deleteLater()
+    qapp.processEvents()
     ctx.engine.close()
     ctx.db.close()
 

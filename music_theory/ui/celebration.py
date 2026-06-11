@@ -155,7 +155,16 @@ class CelebrationOverlay(QWidget):
             })
         return out
 
+    def hideEvent(self, event) -> None:  # noqa: N802 - Qt override
+        # never leave a 16 ms repaint timer running on a hidden overlay
+        self._timer.stop()
+        self._hide_timer.stop()
+        super().hideEvent(event)
+
     def _tick(self) -> None:
+        if not self._active:
+            self._timer.stop()
+            return
         self._elapsed += _FRAME_MS
         if self._elapsed >= _BURST_MS:
             self._timer.stop()

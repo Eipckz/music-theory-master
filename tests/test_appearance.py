@@ -258,6 +258,10 @@ def test_settings_screen_appearance_controls_drive_staff_and_theme(qapp):
         assert STYLE["notehead"] == "filled"
         assert STYLE["line_highlight"] is True
         assert theme.CURRENT_THEME == "dark"
+        # delete the widget tree deterministically, never via the GC
+        screen.close()
+        screen.deleteLater()
+        qapp.processEvents()
     finally:
         ctx.engine.close()
         ctx.db.close()

@@ -1,4 +1,4 @@
-"""Reference screen (circle of fifths, explorer, glossary) and practice/
+﻿"""Reference screen (circle of fifths, explorer, glossary) and practice/
 session flow polish. Generators added in the same batch are auto-covered by
 the parametrized suite in test_generators.py."""
 
@@ -18,17 +18,29 @@ def qapp():
 
 
 @pytest.fixture
-def ctx():
+def ctx(qapp):
     from music_theory.app import build_context
     c = build_context()
+    c._screens = []          # screens registered here get deterministic teardown
     yield c
+    # delete widget trees on our terms: leaving them to the GC can abort the
+    # process mid-event-loop later (0xC0000409)
+    for w in c._screens:
+        w.close()
+        w.deleteLater()
+    qapp.processEvents()
     c.engine.close()
     c.db.close()
 
 
+def _track(ctx, screen):
+    ctx._screens.append(screen)
+    return screen
+
+
 def test_circle_of_fifths_selection_updates_key_card(qapp, ctx):
     from music_theory.ui.screens.reference import _CIRCLE, ReferenceScreen
-    screen = ReferenceScreen(ctx)
+    screen = _track(ctx, ReferenceScreen(ctx))
     assert "C major" in screen.key_title.text()
     screen.circle.selected = 3                       # A major
     screen._on_key_picked(3)
@@ -42,7 +54,7 @@ def test_circle_click_hits_a_segment(qapp, ctx):
     from PyQt6.QtCore import QPointF, Qt
     from PyQt6.QtGui import QMouseEvent
     from music_theory.ui.screens.reference import ReferenceScreen
-    screen = ReferenceScreen(ctx)
+    screen = _track(ctx, ReferenceScreen(ctx))
     screen.circle.resize(400, 400)
     # click at 3 o'clock mid-ring = 90 degrees clockwise from C = E major (idx 4)
     ev = QMouseEvent(QMouseEvent.Type.MouseButtonPress, QPointF(200 + 160, 200),
@@ -54,7 +66,7 @@ def test_circle_click_hits_a_segment(qapp, ctx):
 
 def test_explorer_renders_scale_and_chord(qapp, ctx):
     from music_theory.ui.screens.reference import ReferenceScreen
-    screen = ReferenceScreen(ctx)
+    screen = _track(ctx, ReferenceScreen(ctx))
     screen.ex_root.setCurrentText("D")
     screen.ex_kind.setCurrentIndex(1)                # scale/mode
     screen.ex_sub.setCurrentIndex(0)
@@ -68,7 +80,7 @@ def test_explorer_renders_scale_and_chord(qapp, ctx):
 
 def test_glossary_filter(qapp, ctx):
     from music_theory.ui.screens.reference import GLOSSARY, ReferenceScreen
-    screen = ReferenceScreen(ctx)
+    screen = _track(ctx, ReferenceScreen(ctx))
     assert len(GLOSSARY) >= 30
     screen._filter_glossary("tritone")
     visible = [row for _, row in screen._gloss_rows if not row.isHidden()]
@@ -80,7 +92,7 @@ def test_glossary_filter(qapp, ctx):
 
 def test_glossary_examples_play_without_error(qapp, ctx):
     from music_theory.ui.screens.reference import GLOSSARY, ReferenceScreen
-    screen = ReferenceScreen(ctx)
+    screen = _track(ctx, ReferenceScreen(ctx))
     for _term, _definition, play in GLOSSARY:
         if play:
             screen._play_example(play)               # guard: must never raise
@@ -88,7 +100,7 @@ def test_glossary_examples_play_without_error(qapp, ctx):
 
 def test_practice_focus_weakest_presets_topic(qapp, ctx):
     from music_theory.ui.screens.practice import PracticeScreen
-    screen = PracticeScreen(ctx)
+    screen = _track(ctx, PracticeScreen(ctx))
     screen._focus_weakest()
     assert screen.type_combo.currentData()           # some etype selected
     assert screen.player.ex is not None
@@ -96,7 +108,7 @@ def test_practice_focus_weakest_presets_topic(qapp, ctx):
 
 def test_session_recap_lists_skills(qapp, ctx):
     from music_theory.ui.screens.session import SessionScreen
-    screen = SessionScreen(ctx)
+    screen = _track(ctx, SessionScreen(ctx))
     screen.lesson_n = 10
     screen.lesson_correct = 7
     screen.lesson_skill_stats = {"fund.note_names": [6, 5], "fund.intervals": [4, 2]}

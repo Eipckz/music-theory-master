@@ -146,6 +146,16 @@ def qapp():
     yield app
 
 
+def _drop_widget(widget, qapp) -> None:
+    """Deterministic Qt teardown. Leaving a dropped widget tree for the GC
+    lets Python delete live QObjects in the middle of a later event loop
+    pass, which aborts the process (0xC0000409) on some interpreter/GC
+    timings. Delete it now, on our terms."""
+    widget.close()
+    widget.deleteLater()
+    qapp.processEvents()
+
+
 def test_celebration_overlay_shows_and_dismisses(qapp):
     from PyQt6.QtWidgets import QWidget
     from music_theory.ui.celebration import CelebrationOverlay
@@ -160,6 +170,7 @@ def test_celebration_overlay_shows_and_dismisses(qapp):
     assert not ov._particles
     ov.dismiss()
     assert not ov.active
+    _drop_widget(host, qapp)
 
 
 def test_celebration_reduce_motion_skips_particles(qapp):
@@ -173,6 +184,7 @@ def test_celebration_reduce_motion_skips_particles(qapp):
     assert ov.active
     assert not ov._particles
     ov.dismiss()
+    _drop_widget(host, qapp)
 
 
 def test_animate_bar_jumps_when_reduced(qapp):
@@ -197,6 +209,7 @@ def test_achievements_gallery_renders_locked_and_unlocked(qapp):
         tiles = screen.grid.count()
         assert tiles >= len(ach.ACHIEVEMENTS)
         assert "1 of" in screen.progress.text()
+        _drop_widget(screen, qapp)
     finally:
         ctx.engine.close()
         ctx.db.close()
@@ -232,7 +245,9 @@ def test_session_streak_message_after_five_correct(qapp):
                 break
             sess._load_next()
         assert streak_seen
+    finally:
+        win.close()
+        win.deleteLater()
+        qapp.processEvents()
         ctx.engine.close()
         ctx.db.close()
-    finally:
-        pass

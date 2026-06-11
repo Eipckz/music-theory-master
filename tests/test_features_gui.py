@@ -53,6 +53,12 @@ def window(qapp):
     win.show()
     qapp.processEvents()
     yield win
+    # tear the widget tree down deterministically: dropping a live window
+    # with running timers for the GC to find later is a use-after-free
+    # (0xC0000409 mid-suite, timing dependent)
+    win.close()
+    win.deleteLater()
+    qapp.processEvents()
     ctx.engine.close()
     ctx.db.close()
 

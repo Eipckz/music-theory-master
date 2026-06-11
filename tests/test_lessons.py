@@ -104,6 +104,9 @@ def test_first_encounter_teaches_then_drills(qapp):
         # ...and the skill is marked taught, so it will not re-teach.
         assert ctx.db.kv_get(f"taught.{skill_id}")
     finally:
+        win.close()
+        win.deleteLater()
+        qapp.processEvents()
         ctx.engine.close()
         ctx.db.close()
 
