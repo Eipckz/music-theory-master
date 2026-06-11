@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/work/
+build/dist/
+dist/
+*.spec.bak
+
+# Vendored binaries fetched by setup (large, downloaded, not source)
+music_theory/resources/soundfonts/*.sf2
+music_theory/resources/soundfonts/*.sf3
+music_theory/resources/fluidsynth/
+
+# Local user data should never be committed
+*.db
+*.sqlite3
+settings.json
+
+# Build/test caches
+build/
+.pytest_cache/
