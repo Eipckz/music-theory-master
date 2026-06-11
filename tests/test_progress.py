@@ -39,16 +39,16 @@ def test_reset_progress_clears_everything(db):
 def test_achievements_unlock_once(db):
     db.add_xp(120)
     first = evaluate_global(db)
-    assert "Century - 100 XP" in first
+    assert "Century" in first
     # idempotent: re-evaluating does not re-award
     assert evaluate_global(db) == []
-    assert "Century - 100 XP" in unlocked_titles(db)
+    assert "Century" in unlocked_titles(db)
 
 
 def test_lesson_achievement_sharp_shooter(db):
     titles = evaluate_lesson(db, accuracy=95, lesson_len=10)
     assert "First Lesson Complete" in titles
-    assert "Sharp Shooter - 90%+ lesson" in titles
+    assert "Sharp Shooter" in titles
 
 
 def test_placement_reseed_does_not_downgrade(db):

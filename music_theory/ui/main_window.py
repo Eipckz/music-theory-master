@@ -10,12 +10,15 @@ from PyQt6.QtWidgets import (
 
 from .. import __app_name__
 from ..errors import guard, set_notifier
-from .theme import TOAST_COLORS
+from . import theme
+from .celebration import CelebrationOverlay
 from .screens.about import AboutScreen
+from .screens.achievements import AchievementsScreen
 from .screens.dashboard import DashboardScreen
 from .screens.piano_workspace import PianoWorkspaceScreen
 from .screens.placement import PlacementScreen
 from .screens.practice import PracticeScreen
+from .screens.reference import ReferenceScreen
 from .screens.session import SessionScreen
 from .screens.settings import SettingsScreen
 from .screens.stats import StatsScreen
@@ -28,7 +31,9 @@ _NAV = [
     ("Practice", "practice"),
     ("Dictation", "dictation"),
     ("Piano", "piano"),
+    ("Reference", "reference"),
     ("Progress", "stats"),
+    ("Awards", "achievements"),
     ("Placement", "placement"),
     ("Settings", "settings"),
     ("About", "about"),
@@ -56,7 +61,9 @@ class MainWindow(QMainWindow):
         self.practice = PracticeScreen(ctx)
         self._add("practice", self.practice)
         self._add("piano", PianoWorkspaceScreen(ctx))
+        self._add("reference", ReferenceScreen(ctx))
         self._add("stats", StatsScreen(ctx))
+        self._add("achievements", AchievementsScreen(ctx))
         self._add("placement", PlacementScreen(ctx))
         self._add("settings", SettingsScreen(ctx))
         self._add("about", AboutScreen(ctx))
@@ -71,19 +78,28 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self._toast = _Toast(self)
+        self._celebration = CelebrationOverlay(self)
         set_notifier(lambda title, msg: self.toast(f"{title}: {msg}", kind="warning"))
 
         start = "placement" if not self.ctx.settings.get("placement_done", False) else "dashboard"
         self.go_to(start)
 
     def toast(self, message: str, *, kind: str = "info", msec: int = 2600) -> None:
-        """Show a brief, non-modal notification (level-ups, achievements, errors)."""
+        """Show a brief, non-modal notification (achievements, errors)."""
         self._toast.show_message(message, kind=kind, msec=msec)
+
+    @guard("MainWindow.celebrate")
+    def celebrate(self, title: str, message: str, *, kind: str = "level_up") -> None:
+        """Full celebration moment (confetti + card) for the big milestones."""
+        reduce = bool(self.ctx.settings.get("reduce_motion", False))
+        self._celebration.celebrate(title, message, kind=kind, reduce_motion=reduce)
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
         super().resizeEvent(event)
         if hasattr(self, "_toast"):
             self._toast.reposition()
+        if hasattr(self, "_celebration") and self._celebration.isVisible():
+            self._celebration.setGeometry(self.rect())
 
     def _add(self, name: str, widget: QWidget) -> None:
         self.screens[name] = widget
@@ -157,7 +173,7 @@ class _Toast(QLabel):
         self._timer.timeout.connect(self.hide)
 
     def show_message(self, message: str, *, kind: str = "info", msec: int = 2600) -> None:
-        bg = TOAST_COLORS.get(kind, TOAST_COLORS["info"])
+        bg = theme.TOAST_COLORS.get(kind, theme.TOAST_COLORS["info"])
         # warnings/errors stay up longer: 2.6 s is too brief for slow readers
         if kind in ("warning", "error") and msec <= 2600:
             msec = 6000

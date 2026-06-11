@@ -13,10 +13,12 @@ from PyQt6.QtWidgets import (
 from ...adaptive import MasteryModel, level_for_rating
 from ...curriculum.lessons import lesson_for
 from ...errors import guard
+from ...feedback_messages import pick_message
 from ..common import card, heading, subtle
 from ..exercise_player import ExercisePlayer
 from ..lesson_view import LessonView
-from ..theme import GOOD
+from .. import theme
+from .dashboard import DAILY_GOAL_XP
 
 LESSON_LEN = 10
 
@@ -79,6 +81,9 @@ class SessionScreen(QWidget):
         self.lesson_correct = 0
         self.lesson_xp = 0
         self.lesson_skills: set[str] = set()
+        self.lesson_skill_stats: dict[str, list[int]] = {}   # skill_id -> [n, correct]
+        self._consec_correct = 0
+        self._last_was_miss = False
 
     def preset_weak(self) -> None:
         """Start a lesson focused on the learner's weakest skills."""
@@ -191,15 +196,19 @@ class SessionScreen(QWidget):
         self.lesson_n += 1
         self.lesson_correct += 1 if correct else 0
         self.lesson_skills.add(self.pick.skill_id)
+        stats = self.lesson_skill_stats.setdefault(self.pick.skill_id, [0, 0])
+        stats[0] += 1
+        stats[1] += 1 if correct else 0
 
         xp = 10 if correct else 2
         if correct and self.player.was_hinted:
             xp = 4
+        goal_before = self.ctx.db.today_xp()
         self.ctx.db.add_xp(xp)
         self.lesson_xp += xp
         # surface the reward in the moment, not just on the dashboard
         self.player.feedback.setText(
-            self.player.feedback.text() + f"   <b style='color:{GOOD}'>+{xp} XP</b>")
+            self.player.feedback.text() + f"   <b style='color:{theme.GOOD}'>+{xp} XP</b>")
 
         self._touch_streak()
         acc = int(100 * self.correct / self.answered) if self.answered else 0
@@ -209,10 +218,57 @@ class SessionScreen(QWidget):
 
         after_level = level_for_rating(MasteryModel.overall_rating(self.ctx.db, domain_ids))
         after_mastered = self.ctx.curriculum.is_mastered(self.ctx.db, self.pick.skill_id)
+        skill_title = skill.title if skill else self.pick.skill_id
+        self._moment_messages(correct, domain=domain, level=after_level,
+                              skill_title=skill_title)
         if after_mastered and not before_mastered:
-            self._notify(f"\u2b50 Skill mastered: {skill.title if skill else ''}!", kind="success")
+            self._celebrate("mastery", skill_title,
+                            pick_message(self.ctx.db, domain, after_level, "mastery",
+                                         skill=skill_title, domain=domain.title()))
         elif after_level != before_level:
-            self._notify(f"\U0001F389 Level up! {domain.title()} is now {after_level}.", kind="success")
+            self._celebrate("level_up", f"{domain.title()}: {after_level}",
+                            pick_message(self.ctx.db, domain, after_level, "level_up",
+                                         level=after_level, domain=domain.title()))
+        if goal_before < DAILY_GOAL_XP <= self.ctx.db.today_xp():
+            msg = pick_message(self.ctx.db, domain, after_level, "daily_goal",
+                               domain=domain.title())
+            win = self.window()
+            # don't stack overlays: fall back to a toast if one is already up
+            if hasattr(win, "celebrate") and not getattr(
+                    getattr(win, "_celebration", None), "active", False):
+                win.celebrate("Daily goal reached", msg, kind="daily_goal")
+            else:
+                self._notify(f"\u2705 Daily goal reached. {msg}", kind="success")
+
+    def _moment_messages(self, correct: bool, *, domain: str, level: str,
+                         skill_title: str) -> None:
+        """Streak and comeback encouragement, appended under the feedback."""
+        line = ""
+        if correct:
+            was_miss = self._last_was_miss
+            self._consec_correct += 1
+            self._last_was_miss = False
+            if self._consec_correct >= 5 and self._consec_correct % 5 == 0:
+                line = pick_message(self.ctx.db, domain, level, "correct_streak",
+                                    streak=self._consec_correct, skill=skill_title,
+                                    domain=domain.title())
+            elif was_miss:
+                line = pick_message(self.ctx.db, domain, level, "comeback_after_miss",
+                                    skill=skill_title, domain=domain.title())
+        else:
+            self._consec_correct = 0
+            self._last_was_miss = True
+        if line:
+            self.player.feedback.setText(
+                self.player.feedback.text()
+                + f"<br><span style='color:{theme.TEXT_MUTED}'>{line}</span>")
+
+    def _celebrate(self, kind: str, title: str, message: str) -> None:
+        win = self.window()
+        if hasattr(win, "celebrate"):
+            win.celebrate(title, message, kind=kind)
+        else:  # headless tests drive the screen without a MainWindow
+            self._notify(f"{title}. {message}", kind="success")
 
     def _show_summary(self) -> None:
         self.player.hide()
@@ -230,9 +286,35 @@ class SessionScreen(QWidget):
         prof = self.ctx.db.get_profile()
         lay.addWidget(subtle(f"Streak: {prof.get('streak_days', 0)} days   \u00b7   "
                              f"Total XP: {prof.get('total_xp', 0)}"))
-        lay.addWidget(subtle("Outstanding!" if acc >= 90 else
-                             "Nice work - you're getting it." if acc >= 60 else
-                             "Keep going - every rep builds the skill."))
+        # encouragement from the no-repeat bank, tied to what was just drilled
+        skill_id = next(iter(self.lesson_skills), "")
+        skill = self.ctx.curriculum.get(skill_id)
+        domain = skill.domain if skill else "theory"
+        level = skill.level if skill else "Beginner"
+        msg = pick_message(self.ctx.db, domain, level, "lesson_complete",
+                           skill=(skill.title if skill else "this material"),
+                           domain=domain.title())
+        if msg:
+            note = subtle(msg)
+            note.setWordWrap(True)
+            lay.addWidget(note)
+
+        # per-session recap: what you worked on, and what to revisit
+        if self.lesson_skill_stats:
+            lines = []
+            weakest, weakest_acc = None, 2.0
+            for sid, (n, c) in self.lesson_skill_stats.items():
+                sk = self.ctx.curriculum.get(sid)
+                title = sk.title if sk else sid
+                lines.append(f"{title}:  {c}/{n}")
+                if n and c / n < weakest_acc:
+                    weakest, weakest_acc = title, c / n
+            recap = QLabel("<b>This lesson:</b><br>" + "<br>".join(lines))
+            recap.setAccessibleName("Lesson recap by skill")
+            lay.addWidget(recap)
+            if weakest is not None and weakest_acc < 1.0:
+                lay.addWidget(subtle(f"Worth another look: {weakest}. "
+                                     "It will come back in your reviews."))
         self._unlock_lesson_achievements(acc)
 
         row = QHBoxLayout()
@@ -276,5 +358,11 @@ class SessionScreen(QWidget):
             return
         streak = prof.get("streak_days", 0)
         yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-        streak = streak + 1 if last == yesterday else 1
+        if last == yesterday:
+            streak += 1
+        else:
+            # streak broken: remember it so rebuilding one earns "Comeback"
+            if streak >= 3 and last:
+                self.ctx.db.kv_set("streak.lost_after_3", True)
+            streak = 1
         self.ctx.db.update_profile(last_active_day=today, streak_days=streak)

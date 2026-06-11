@@ -295,6 +295,13 @@ class Database:
         ).fetchall()
         return [r["key"] for r in rows]
 
+    def achievements_with_dates(self) -> dict[str, float]:
+        """key -> unlock timestamp, for the achievements gallery."""
+        rows = self.conn.execute(
+            "SELECT key, unlocked_at FROM achievements ORDER BY unlocked_at"
+        ).fetchall()
+        return {r["key"]: float(r["unlocked_at"]) for r in rows}
+
     # -- key/value --------------------------------------------------------
     def kv_get(self, key: str, default: Any = None) -> Any:
         row = self.conn.execute("SELECT value FROM kv WHERE key = ?", (key,)).fetchone()
