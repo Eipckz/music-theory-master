@@ -1,6 +1,6 @@
 <div align="center">
 
-# ♫ Music Theory Master
+# ♫ Music Theory Master - A Tool Created by Fable 5
 
 **A Duolingo-style desktop trainer for music theory, ear training, and keyboard skills — from "what's a triad?" to graduate-level chops.**
 
