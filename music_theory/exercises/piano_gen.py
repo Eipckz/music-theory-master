@@ -7,7 +7,7 @@ import random
 
 from ..theory.pitch import Note, transpose
 from ..theory.scales import scale_notes
-from ..theory.chords import triad, seventh, TRIAD_QUALITIES
+from ..theory.chords import triad, TRIAD_QUALITIES
 from .base import Exercise, InputMode
 from .registry import register
 from . import _util as U

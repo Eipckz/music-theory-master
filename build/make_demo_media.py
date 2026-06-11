@@ -80,11 +80,17 @@ def main() -> int:
     _capture_tour(app, win, grab)
     _capture_lesson(app, win, grab)
     _capture_drill(app, win, ctx, grab)
+    _capture_staff(app, win, ctx, grab)
     _capture_dictation(app, win, ctx, grab)
+    _capture_fifths(app, win, grab)
+    _capture_themes(app, win, ctx, grab)
+    _capture_celebration(app, win, grab)
     _capture_placement(app, win, grab)
 
     for gif, frames in shots.items():
         _assemble(gif, frames)
+
+    _theme_strip(app, win, ctx)
 
     # hero screenshot: the dashboard, full resolution
     win.go_to("dashboard")
@@ -137,7 +143,9 @@ def _capture_tour(app, win, grab) -> None:
     grab("tour", "piano", 1700)
     for m in (60, 64, 67):
         piano_screen.piano._release(m)
+    win.go_to("reference"); grab("tour", "reference", 1700)
     win.go_to("stats"); grab("tour", "stats", 1700)
+    win.go_to("achievements"); grab("tour", "awards", 1700)
     win.go_to("settings"); grab("tour", "settings", 1700)
 
 
@@ -221,6 +229,114 @@ def _capture_dictation(app, win, ctx, grab) -> None:
             grab("dictation", f"enter{len(player._entry)}", 1500)
     player._grade(list(player._entry))
     grab("dictation", "result", 3000)
+
+
+def _capture_staff(app, win, ctx, grab) -> None:
+    """The engraved staff: clean accidentals, then a construction exercise."""
+    print("staff.gif")
+    practice = win.screens["practice"]
+    win.go_to("practice")
+    _pump(app)
+    practice.preset(domain="theory", etype="note_identification")
+    _pump(app)
+    grab("staff", "note_id", 2400)
+    practice.preset(domain="theory", etype="interval_construction")
+    _pump(app)
+    player = practice.player
+    grab("staff", "build_question", 2400)
+    target = [int(m) for m in player.ex.answer]
+    for m in target:
+        player._add_entry_note(m)
+        _pump(app)
+    grab("staff", "entered", 1800)
+    player._grade(list(player._entry))
+    _pump(app)
+    grab("staff", "reveal", 3000)
+
+
+def _capture_fifths(app, win, grab) -> None:
+    """The circle-of-fifths reference tool."""
+    print("fifths.gif")
+    win.go_to("reference")
+    _pump(app)
+    ref = win.screens["reference"]
+    grab("fifths", "c_major", 2200)
+    for idx in (1, 3, 10):       # G, A, Bb
+        ref.circle.selected = idx
+        ref._on_key_picked(idx)
+        ref.circle.update()
+        _pump(app)
+        grab("fifths", f"key{idx}", 1900)
+    ref._play_key_scale()
+    _pump(app)
+    grab("fifths", "scale", 2400)
+
+
+def _capture_themes(app, win, ctx, grab) -> None:
+    """Live theme switching from the Appearance settings."""
+    print("themes.gif")
+    win.go_to("settings")
+    _pump(app)
+    settings_screen = win.screens["settings"]
+    for theme_name in ("dark", "light", "sepia", "high_contrast"):
+        idx = settings_screen.theme_combo.findData(theme_name)
+        settings_screen.theme_combo.setCurrentIndex(idx)
+        _pump(app, 10)
+        grab("themes", theme_name, 2100)
+    settings_screen.theme_combo.setCurrentIndex(
+        settings_screen.theme_combo.findData("dark"))
+    _pump(app, 10)
+
+
+def _capture_celebration(app, win, grab) -> None:
+    """A level-up celebration overlay mid-burst."""
+    print("celebration.gif")
+    win.go_to("dashboard")
+    _pump(app)
+    win.celebrate("Theory: Intermediate",
+                  "Roman numerals aren't homework anymore. You're reading "
+                  "harmony the way a conductor scans a score.")
+    _pump(app)
+    overlay = win._celebration
+    for i, ticks in enumerate((3, 8, 14)):
+        for _ in range(ticks):
+            overlay._tick()
+        _pump(app)
+        grab("celebration", f"burst{i}", 700 if i < 2 else 2800)
+    overlay.dismiss()
+    _pump(app)
+
+
+def _theme_strip(app, win, ctx) -> None:
+    """Side-by-side dashboard in dark / light / high-contrast for the README."""
+    from PIL import Image
+    from music_theory.ui.theme import apply_theme
+    panels = []
+    for name in ("dark", "light", "high_contrast"):
+        ctx.settings.set("theme", name)
+        apply_theme(app, ctx.settings)
+        win.go_to("dashboard")
+        _pump(app, 10)
+        path = FRAMES / f"theme_{name}.png"
+        win.grab().save(str(path))
+        panels.append(Image.open(path).convert("RGB"))
+    ctx.settings.set("theme", "dark")
+    apply_theme(app, ctx.settings)
+    _pump(app, 6)
+    h = min(im.height for im in panels)
+    scaled = [im.resize((int(im.width * h / im.height), h), Image.LANCZOS) for im in panels]
+    strip = Image.new("RGB", (sum(im.width for im in scaled) + 16 * 2, h), "#000000")
+    x = 0
+    for im in scaled:
+        strip.paste(im, (x, 0))
+        x += im.width + 16
+    out = MEDIA / "screenshot-themes.png"
+    target_w = 1800
+    if strip.width > target_w:
+        strip = strip.resize((target_w, int(strip.height * target_w / strip.width)),
+                             Image.LANCZOS)
+    strip.save(out)
+    print(f"wrote {out.name}")
 
 
 def _capture_placement(app, win, grab) -> None:

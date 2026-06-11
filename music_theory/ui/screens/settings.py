@@ -1,16 +1,25 @@
-"""Settings screen: audio backend/device, soundfont, MIDI input, instrument,
-volume, tempo, and profile name."""
+"""Settings screen: appearance (theme, accent, scale, staff engraving),
+audio backend/device, soundfont, MIDI input, instrument, volume, tempo,
+and profile name.
+
+Appearance changes apply and persist immediately (live preview); audio and
+profile changes apply on the "Apply settings" button as before.
+"""
 
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
-    QMessageBox, QPushButton, QSlider, QSpinBox, QVBoxLayout, QWidget,
+    QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ...errors import guard
+from ...theory.pitch import Note
+from .. import theme
 from ..common import card, heading, subtle
+from ..widgets import StaffWidget
+from ..widgets.staff import configure_staff_appearance
 
 _BACKENDS = [("Automatic (best available)", "auto"),
              ("SoundFont (FluidSynth)", "fluidsynth"),
@@ -19,13 +28,44 @@ _INSTRUMENTS = [("Acoustic Grand Piano", 0), ("Electric Piano", 4), ("Harpsichor
                 ("Vibraphone", 11), ("Church Organ", 19), ("Nylon Guitar", 24),
                 ("Violin", 40), ("Cello", 42), ("Trumpet", 56), ("Flute", 73)]
 
+_STAFF_SIZES = [("Compact", "compact"), ("Comfortable (recommended)", "comfortable"),
+                ("Large", "large")]
+_NOTEHEADS = [("Filled (engraved)", "filled"), ("Outlined", "outlined"),
+              ("High contrast", "high_contrast")]
+_NOTE_LABELS = [("Off", "off"), ("Letters", "letters"),
+                ("Letters + octave", "letters_octave")]
+_PAPERS = [("Theme default", ""), ("Ivory", "#f6f3ea"), ("White", "#ffffff"),
+           ("Soft gray", "#eceef2")]
+_UI_SCALES = [("Auto (match system)", 0.0), ("90%", 0.9), ("100%", 1.0),
+              ("110%", 1.1), ("125%", 1.25), ("150%", 1.5), ("175%", 1.75),
+              ("200%", 2.0)]
+
+# The recommended out-of-box appearance (the "Reset" target).
+_APPEARANCE_DEFAULTS = {
+    "theme": "dark", "accent_color": "", "ui_scale": 0.0, "reduce_motion": False,
+    "staff_size": "comfortable", "staff_accidental_size": 1.0,
+    "staff_accidental_gap": 1.0, "staff_notehead_style": "filled",
+    "staff_note_labels": "off", "staff_line_highlight": True, "staff_paper": "",
+}
+
 
 class SettingsScreen(QWidget):
     def __init__(self, ctx, parent=None) -> None:
         super().__init__(parent)
         self.ctx = ctx
+        self._loading = True
         s = self.ctx.settings
-        root = QVBoxLayout(self)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget()
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
+
+        root = QVBoxLayout(content)
         root.setContentsMargins(28, 24, 28, 20)
         root.setSpacing(14)
         root.addWidget(heading("Settings"))
@@ -36,6 +76,8 @@ class SettingsScreen(QWidget):
         form.addRow("Name", self.name_edit)
         pc.addLayout(form)
         root.addWidget(prof_card)
+
+        root.addWidget(self._build_appearance_card())
 
         audio_card, ac = card("Audio")
         af = QFormLayout()
@@ -109,15 +151,173 @@ class SettingsScreen(QWidget):
         danger_card, dc = card("Progress")
         dc.addWidget(subtle("Reset all learning progress: mastery, XP, streak, "
                             "achievements, and placement. This cannot be undone."))
-        reset_btn = QPushButton("Reset progress\u2026")
+        reset_btn = QPushButton("Reset progress…")
         reset_btn.setObjectName("Danger")
         reset_btn.clicked.connect(self._reset_progress)
         dc.addWidget(reset_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         root.addWidget(danger_card)
 
         root.addStretch(1)
+        self._loading = False
         self._refresh_status()
 
+    # -- appearance ---------------------------------------------------------
+    def _build_appearance_card(self) -> QWidget:
+        s = self.ctx.settings
+        app_card, lay = card("Appearance")
+        lay.addWidget(subtle("Changes apply immediately and are remembered."))
+        form = QFormLayout()
+
+        self.theme_combo = QComboBox()
+        self.theme_combo.setAccessibleName("Color theme")
+        for label, val in theme.THEME_LABELS:
+            self.theme_combo.addItem(label, val)
+        self._select_data(self.theme_combo, s.get("theme", "dark"))
+        self.theme_combo.currentIndexChanged.connect(self._apply_appearance)
+        form.addRow("Theme", self.theme_combo)
+
+        self.accent_combo = QComboBox()
+        self.accent_combo.setAccessibleName("Accent color")
+        for label, val in theme.ACCENT_PRESETS:
+            self.accent_combo.addItem(label, val)
+        self._select_data(self.accent_combo, s.get("accent_color", ""))
+        self.accent_combo.currentIndexChanged.connect(self._apply_appearance)
+        form.addRow("Accent color", self.accent_combo)
+
+        self.scale_combo = QComboBox()
+        self.scale_combo.setAccessibleName("Interface scale")
+        for label, val in _UI_SCALES:
+            self.scale_combo.addItem(label, val)
+        self._select_data(self.scale_combo, float(s.get("ui_scale", 0.0)))
+        self.scale_combo.currentIndexChanged.connect(self._apply_appearance)
+        form.addRow("Interface scale", self.scale_combo)
+
+        self.reduce_motion = QCheckBox("Reduce motion (skip celebration animations)")
+        self.reduce_motion.setChecked(bool(s.get("reduce_motion", False)))
+        self.reduce_motion.toggled.connect(self._apply_appearance)
+        form.addRow("", self.reduce_motion)
+        lay.addLayout(form)
+
+        lay.addWidget(QLabel("<b>Staff &amp; notation</b>"))
+        sform = QFormLayout()
+
+        self.staff_size_combo = QComboBox()
+        self.staff_size_combo.setAccessibleName("Staff size")
+        for label, val in _STAFF_SIZES:
+            self.staff_size_combo.addItem(label, val)
+        self._select_data(self.staff_size_combo, s.get("staff_size", "comfortable"))
+        self.staff_size_combo.currentIndexChanged.connect(self._apply_appearance)
+        sform.addRow("Staff size", self.staff_size_combo)
+
+        self.notehead_combo = QComboBox()
+        self.notehead_combo.setAccessibleName("Notehead style")
+        for label, val in _NOTEHEADS:
+            self.notehead_combo.addItem(label, val)
+        self._select_data(self.notehead_combo, s.get("staff_notehead_style", "filled"))
+        self.notehead_combo.currentIndexChanged.connect(self._apply_appearance)
+        sform.addRow("Noteheads", self.notehead_combo)
+
+        self.labels_combo = QComboBox()
+        self.labels_combo.setAccessibleName("Note name labels on the staff")
+        for label, val in _NOTE_LABELS:
+            self.labels_combo.addItem(label, val)
+        self._select_data(self.labels_combo, s.get("staff_note_labels", "off"))
+        self.labels_combo.currentIndexChanged.connect(self._apply_appearance)
+        sform.addRow("Note names", self.labels_combo)
+
+        self.paper_combo = QComboBox()
+        self.paper_combo.setAccessibleName("Staff paper color")
+        for label, val in _PAPERS:
+            self.paper_combo.addItem(label, val)
+        self._select_data(self.paper_combo, s.get("staff_paper", ""))
+        self.paper_combo.currentIndexChanged.connect(self._apply_appearance)
+        sform.addRow("Paper color", self.paper_combo)
+
+        self.acc_size = QSlider(Qt.Orientation.Horizontal)
+        self.acc_size.setAccessibleName("Accidental size")
+        self.acc_size.setRange(70, 160)
+        self.acc_size.setValue(int(float(s.get("staff_accidental_size", 1.0)) * 100))
+        self.acc_size.valueChanged.connect(self._apply_appearance)
+        sform.addRow("Accidental size", self.acc_size)
+
+        self.acc_gap = QSlider(Qt.Orientation.Horizontal)
+        self.acc_gap.setAccessibleName("Accidental spacing")
+        self.acc_gap.setRange(50, 200)
+        self.acc_gap.setValue(int(float(s.get("staff_accidental_gap", 1.0)) * 100))
+        self.acc_gap.valueChanged.connect(self._apply_appearance)
+        sform.addRow("Accidental gap", self.acc_gap)
+
+        self.line_highlight = QCheckBox("Highlight the line or space under each note")
+        self.line_highlight.setChecked(bool(s.get("staff_line_highlight", True)))
+        self.line_highlight.toggled.connect(self._apply_appearance)
+        sform.addRow("", self.line_highlight)
+        lay.addLayout(sform)
+
+        # live preview: B-flat next to the head was the original bug, keep it
+        # front and center so any spacing tweak is judged on the hard case
+        self.staff_preview = StaffWidget("treble")
+        self.staff_preview.set_key_signature({"kind": "sharp", "count": 2})
+        self.staff_preview.set_notes([
+            Note("A", 0, 4), Note("B", -1, 4), Note("C", 1, 5), Note("E", 0, 4),
+        ])
+        lay.addWidget(self.staff_preview)
+
+        reset = QPushButton("Reset to recommended defaults")
+        reset.setObjectName("Secondary")
+        reset.clicked.connect(self._reset_appearance)
+        lay.addWidget(reset, alignment=Qt.AlignmentFlag.AlignLeft)
+        return app_card
+
+    @guard("Settings._apply_appearance")
+    def _apply_appearance(self, *_args) -> None:
+        if self._loading:
+            return
+        s = self.ctx.settings
+        s.set("theme", self.theme_combo.currentData())
+        s.set("accent_color", self.accent_combo.currentData())
+        s.set("ui_scale", float(self.scale_combo.currentData()))
+        s.set("reduce_motion", self.reduce_motion.isChecked())
+        s.set("staff_size", self.staff_size_combo.currentData())
+        s.set("staff_notehead_style", self.notehead_combo.currentData())
+        s.set("staff_note_labels", self.labels_combo.currentData())
+        s.set("staff_paper", self.paper_combo.currentData())
+        s.set("staff_accidental_size", self.acc_size.value() / 100.0)
+        s.set("staff_accidental_gap", self.acc_gap.value() / 100.0)
+        s.set("staff_line_highlight", self.line_highlight.isChecked())
+        self._restyle()
+
+    @guard("Settings._reset_appearance")
+    def _reset_appearance(self) -> None:
+        s = self.ctx.settings
+        for key, value in _APPEARANCE_DEFAULTS.items():
+            s.set(key, value)
+        self._loading = True
+        try:
+            self._select_data(self.theme_combo, "dark")
+            self._select_data(self.accent_combo, "")
+            self._select_data(self.scale_combo, 0.0)
+            self.reduce_motion.setChecked(False)
+            self._select_data(self.staff_size_combo, "comfortable")
+            self._select_data(self.notehead_combo, "filled")
+            self._select_data(self.labels_combo, "off")
+            self._select_data(self.paper_combo, "")
+            self.acc_size.setValue(100)
+            self.acc_gap.setValue(100)
+            self.line_highlight.setChecked(True)
+        finally:
+            self._loading = False
+        self._restyle()
+
+    def _restyle(self) -> None:
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is not None:
+            theme.apply_theme(app, self.ctx.settings)
+        configure_staff_appearance(self.ctx.settings)
+        self.staff_preview.updateGeometry()
+        self.staff_preview.update()
+
+    # -- progress -----------------------------------------------------------
     @guard("Settings._reset_progress")
     def _reset_progress(self) -> None:
         confirm = QMessageBox.question(
@@ -166,9 +366,10 @@ class SettingsScreen(QWidget):
         eng = self.ctx.engine
         msg = f"Active engine: <b>{eng.backend_name}</b>"
         if eng.backend_error and eng.backend_name == "synth":
-            msg += f"  \u00b7  SoundFont unavailable ({eng.backend_error})"
+            msg += f"  ·  SoundFont unavailable ({eng.backend_error})"
         self.status.setText(msg)
 
+    @guard("Settings._apply")
     def _apply(self) -> None:
         s = self.ctx.settings
         name = self.name_edit.text().strip() or "Learner"

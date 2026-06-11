@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from music_theory.storage import Database, Settings
+from music_theory.storage import Settings
 
 
 def test_profile_defaults_and_xp(db):

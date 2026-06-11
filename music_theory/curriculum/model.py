@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
-from ..adaptive.mastery import difficulty_for_rating, rating_for_difficulty
+from ..adaptive.mastery import rating_for_difficulty
 
 LEVEL_ORDER = ["Beginner", "Early", "Intermediate", "Advanced", "Graduate"]
 _MASTERY_THRESHOLD = 0.72   # P(known) at which a skill counts as a satisfied prereq
@@ -113,8 +113,8 @@ def _S(*args, **kwargs) -> Skill:
 _SKILLS: list[Skill] = [
     # ---- Beginner ----
     _S("fund.note_names", "Note Names & the Staff", "theory", "Beginner",
-       ("note_identification",), (), (0.0, 3.0),
-       description="Read note names on treble and bass clefs."),
+       ("note_identification", "note_placement"), (), (0.0, 3.0),
+       description="Read and place note names on treble and bass clefs."),
     _S("aural.intervals", "Hearing Intervals", "aural", "Beginner",
        ("interval_recognition",), (), (0.0, 4.0),
        description="Recognize intervals by ear."),
@@ -133,7 +133,7 @@ _SKILLS: list[Skill] = [
        ("interval_identification", "interval_construction"), ("fund.note_names",), (1.0, 6.0),
        description="Identify and build intervals by number and quality."),
     _S("scales.key_signatures", "Key Signatures", "theory", "Early",
-       ("key_signature_identification",), ("fund.note_names",), (1.0, 7.0),
+       ("key_signature_identification", "key_signature_build"), ("fund.note_names",), (1.0, 7.0),
        description="Major/minor key signatures and the circle of fifths."),
     _S("scales.spell", "Scale Spelling", "theory", "Early",
        ("scale_spelling",), ("fund.note_names",), (1.0, 6.0),
@@ -160,7 +160,7 @@ _SKILLS: list[Skill] = [
     _S("chords.seventh_quality", "Seventh-Chord Quality", "theory", "Intermediate",
        ("seventh_quality",), ("chords.triad_quality",), (3.0, 8.0)),
     _S("chords.inversions", "Inversions & Figured Bass", "theory", "Intermediate",
-       ("chord_inversion",), ("chords.triad_spell",), (3.0, 8.0)),
+       ("chord_inversion", "inversion_build"), ("chords.triad_spell",), (3.0, 8.0)),
     _S("harmony.roman_numerals", "Roman-Numeral Analysis", "theory", "Intermediate",
        ("roman_numeral_analysis",), ("chords.triad_quality", "scales.key_signatures"), (3.0, 9.0)),
     _S("harmony.roman_build", "Build From Roman Numerals", "theory", "Intermediate",
@@ -177,7 +177,8 @@ _SKILLS: list[Skill] = [
 
     # ---- Advanced ----
     _S("aural.harmonic_dictation", "Harmonic Dictation", "aural", "Advanced",
-       ("harmonic_dictation",), ("aural.cadences", "harmony.roman_numerals"), (3.0, 9.0)),
+       ("progression_ear", "harmonic_dictation"),
+       ("aural.cadences", "harmony.roman_numerals"), (3.0, 9.0)),
     _S("aural.multipart", "Multi-Part Dictation", "aural", "Advanced",
        ("multipart_dictation",), ("aural.melodic_dictation", "aural.harmonic_dictation"), (3.0, 10.0),
        description="Transcribe two, three, then four simultaneous voices - "

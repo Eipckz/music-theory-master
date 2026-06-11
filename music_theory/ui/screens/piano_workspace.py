@@ -1,9 +1,9 @@
-"""Free piano workspace: play the on-screen keyboard (or a connected MIDI
+﻿"""Free piano workspace: play the on-screen keyboard (or a connected MIDI
 keyboard), and audition scales and chords in any key."""
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (
     QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget,
 )
@@ -12,7 +12,7 @@ from ...theory.pitch import Note
 from ...theory.scales import SCALE_TYPES, scale_notes
 from ...theory.chords import triad, seventh
 from ..common import heading, subtle
-from ..theme import ACCENT
+from .. import theme
 from ..widgets import PianoWidget
 
 _ROOTS = [("C", 0), ("D\u266d", ("D", -1)), ("D", 0), ("E\u266d", ("E", -1)), ("E", 0),
@@ -86,7 +86,7 @@ class PianoWorkspaceScreen(QWidget):
 
     def _on_press(self, midi: int) -> None:
         self.ctx.engine.play_note(int(midi), dur=0.9)
-        self.piano.highlight([int(midi)], ACCENT)
+        self.piano.highlight([int(midi)], theme.ACCENT)
         n = Note.from_midi(int(midi))
         self.readout.setText(f"{n.name}  (MIDI {midi})")
 
@@ -104,7 +104,7 @@ class PianoWorkspaceScreen(QWidget):
         notes = notes + [Note(notes[0].letter, notes[0].alter, notes[0].octave + 1)]
         midis = [n.midi for n in notes]
         self.ctx.engine.play_melody(midis, tempo=120)
-        self.piano.flash(midis, ACCENT)
+        self.piano.flash(midis, theme.ACCENT)
         self.readout.setText(" ".join(n.name_no_octave for n in notes))
 
     def _play_chord(self) -> None:
@@ -114,5 +114,5 @@ class PianoWorkspaceScreen(QWidget):
         voiced = ch.voiced(4)
         midis = [n.midi for n in voiced]
         self.ctx.engine.play_chord(midis)
-        self.piano.flash(midis, ACCENT)
+        self.piano.flash(midis, theme.ACCENT)
         self.readout.setText(f"{ch.symbol}:  " + " ".join(n.name_no_octave for n in voiced))

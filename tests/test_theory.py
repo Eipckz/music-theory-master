@@ -12,7 +12,7 @@ from music_theory.theory.chords import (
     triad, seventh, roman_to_chord, chord_to_roman, _diatonic_roman_to_chord,
 )
 from music_theory.theory.scales import scale_notes, key_signature
-from music_theory.theory.settheory import normal_form, prime_form, interval_vector, forte_name
+from music_theory.theory.settheory import prime_form, interval_vector, forte_name
 
 
 def test_interval_basic():

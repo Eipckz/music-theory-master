@@ -9,8 +9,8 @@ import re
 from ..theory.settheory import (
     PCSet, normal_form, prime_form, interval_vector, forte_name,
 )
-from ..theory.twelvetone import ToneRow, row_matrix, pc_label
-from ..theory.neoriemann import nr_transform, triad_name, triad_pcs, parse_triad
+from ..theory.twelvetone import ToneRow, pc_label
+from ..theory.neoriemann import nr_transform, triad_name, parse_triad
 from .base import Exercise, InputMode
 from .registry import register
 from . import _util as U

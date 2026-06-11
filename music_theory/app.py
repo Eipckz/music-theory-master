@@ -68,13 +68,15 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
-    apply_theme(app)
+
+    ctx = build_context()
+    apply_theme(app, ctx.settings)
+    from .ui.widgets.staff import configure_staff_appearance
+    configure_staff_appearance(ctx.settings)
 
     icon_path = resources_dir() / "icons" / "icon.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
-
-    ctx = build_context()
 
     # Optional MIDI keyboard
     try:

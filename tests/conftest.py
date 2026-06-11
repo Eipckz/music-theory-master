@@ -14,6 +14,12 @@ import pytest
 
 from music_theory.storage import Database, Settings
 
+# Pin the default test profile to the pure-python synth. The FluidSynth
+# backend loads in a background thread and its native teardown is the known
+# 0xC0000409-at-exit flake; tests that target FluidSynth explicitly still
+# construct it with their own settings.
+Settings().set("audio_backend", "synth")
+
 
 @pytest.fixture
 def db(tmp_path):

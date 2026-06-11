@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import random
 
-from ..theory.pitch import Note, interval_between, simple_interval_name
+from ..theory.pitch import Note
 from ..theory.scales import SCALE_TYPES, scale_notes, key_signature
 from ..theory.chords import triad, seventh, roman_to_chord
 from .base import Exercise, InputMode
@@ -377,4 +377,39 @@ def error_detection(difficulty: float, rng: random.Random) -> Exercise:
         explanation=f"Note {wrong_index + 1} was played differently.", difficulty=difficulty,
         play={"mode": "melody", "midis": played, "tempo": 100, "beats": 1.0},
         tags={"replayable": True, "staff_prompt": {"clef": "treble", "notes": printed}},
+    )
+
+
+@register("progression_ear", "aural", "Progression Recognition (Ear)")
+def progression_ear(difficulty: float, rng: random.Random) -> Exercise:
+    """The on-ramp to harmonic dictation: hear a short progression, pick its
+    label from a list (no chord-by-chord entry yet)."""
+    if difficulty < 3:
+        pool = [["I", "IV", "V", "I"], ["I", "V", "I"], ["I", "IV", "I"]]
+    elif difficulty < 6:
+        pool = [["I", "IV", "V", "I"], ["I", "V", "vi", "IV"], ["I", "vi", "IV", "V"],
+                ["ii", "V", "I"]]
+    else:
+        pool = [["I", "vi", "ii", "V"], ["I", "V", "vi", "IV"], ["ii", "V", "I"],
+                ["I", "IV", "vi", "V"], ["I", "iii", "IV", "V"]]
+    prog = rng.choice(pool)
+    key = U.pick_key_name(rng, difficulty)
+    chords = []
+    for fig in prog:
+        try:
+            ch = roman_to_chord(fig, key, "major")
+            chords.append([n.midi for n in ch.voiced(3)])
+        except Exception:  # noqa: BLE001 - generators must never raise
+            chords.append([48, 52, 55])
+    label = " - ".join(prog)
+    distractors = [" - ".join(p) for p in pool if p != prog]
+    distractors += ["I - V - I", "I - IV - V - I", "ii - V - I", "I - V - vi - IV"]
+    return Exercise(
+        skill_id="aural.harmonic_dictation", domain="aural", etype="progression_ear",
+        prompt="Which progression do you hear?",
+        input_mode=InputMode.MULTIPLE_CHOICE, answer=label,
+        choices=U.choices_from(label, distractors, rng, k=4),
+        explanation=f"That was {label} in {key} major.", difficulty=difficulty,
+        play={"mode": "harmonic", "chords": chords, "tempo": 80, "beats": 2.0},
+        tags={"replayable": True},
     )

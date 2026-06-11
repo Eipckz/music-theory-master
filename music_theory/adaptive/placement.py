@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from ..exercises.registry import safe_generate
-from .mastery import difficulty_for_rating, level_for_rating, rating_for_difficulty
+from .mastery import level_for_rating, rating_for_difficulty
 
 # Representative exercise types per domain, ordered easy -> hard.
 _DOMAIN_LADDER = {

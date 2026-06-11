@@ -145,6 +145,25 @@ _CONCEPTS: dict[str, str] = {
         "The three PLR moves connect triads by common tones: P swaps major/minor "
         "(C<->Cm), L moves the root by a half step (C<->Em), R moves the 5th "
         "(C<->Am). Apply each letter in turn to transform the triad.",
+    "note_placement":
+        "Work from a clef landmark: treble lines spell E-G-B-D-F from the bottom, "
+        "bass lines G-B-D-F-A. Step up or down by lines and spaces until you reach "
+        "the letter you need, and watch the octave number - C4 is middle C.",
+    "key_signature_build":
+        "Sharps accumulate in the order F C G D A E B (each new sharp a 5th up); "
+        "flats in the reverse order B E A D G C F. For sharp keys the key is a half "
+        "step above the last sharp; for flat keys the second-to-last flat names the "
+        "major key. Minor keys borrow their relative major's signature.",
+    "inversion_build":
+        "An inversion just changes which chord member is lowest: root position has "
+        "the root in the bass, first inversion the 3rd, second inversion the 5th, "
+        "and (for sevenths) third inversion the 7th. Stack the rest above in any "
+        "octave - only the bass note defines the inversion.",
+    "progression_ear":
+        "Anchor on the tonic chord, then track the bass line. IV sits a 4th above "
+        "the tonic and sounds like a lift; V pulls hard back toward I; vi shares "
+        "two notes with I but turns dark. Most pop and classical phrases are built "
+        "from exactly these moves.",
 }
 
 _HINTS: dict[str, str] = {
@@ -160,6 +179,10 @@ _HINTS: dict[str, str] = {
     "melodic_dictation": "Track each note as a step or leap from the previous one.",
     "multipart_dictation": "Outer voices first: soprano, then bass, then fill the middle.",
     "key_signature_identification": "Last sharp = leading tone; 2nd-to-last flat = the key.",
+    "note_placement": "Find a landmark line first, then count steps to your note.",
+    "key_signature_build": "Count around the circle of fifths from C: sharps go up, flats go down.",
+    "inversion_build": "Only the lowest note matters for the inversion; build the rest above it.",
+    "progression_ear": "Follow the bass: does it climb a 4th (IV), a 5th (V), or fall to vi?",
 }
 
 

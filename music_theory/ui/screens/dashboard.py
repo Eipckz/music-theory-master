@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QGridLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget,
 )
 
-from ...achievements import unlocked_titles
+from ...achievements import ACHIEVEMENTS, unlocked_titles
 from ...adaptive import MasteryModel, level_for_rating
+from ..celebration import animate_bar
 from ..common import card, card_title, heading, subtle
 
 DAILY_GOAL_XP = 50
@@ -99,7 +100,8 @@ class DashboardScreen(QWidget):
         self.place_btn.setText("Retake placement test" if placement else "Take placement test")
 
         today = self.ctx.db.today_xp()
-        self.goal_bar.setValue(min(DAILY_GOAL_XP, today))
+        reduce = bool(self.ctx.settings.get("reduce_motion", False))
+        animate_bar(self.goal_bar, min(DAILY_GOAL_XP, today), reduce_motion=reduce)
         if today >= DAILY_GOAL_XP:
             self.goal_label.setText(f"Daily goal reached - {today} XP today. Nice!")
         else:
@@ -113,13 +115,16 @@ class DashboardScreen(QWidget):
         titles = unlocked_titles(self.ctx.db)
         if titles:
             recent = "      ".join("\U0001F3C6  " + t for t in titles[-3:])
-            if len(titles) > 3:
-                recent += f"      (+{len(titles) - 3} more)"
             lbl = QLabel(recent)
             lbl.setWordWrap(True)
             self.ach_layout.addWidget(lbl)
         else:
             self.ach_layout.addWidget(subtle("No achievements yet - complete a lesson to earn your first!"))
+        gallery_btn = QPushButton(f"View all  ({len(titles)} / {len(ACHIEVEMENTS)})  →")
+        gallery_btn.setObjectName("Secondary")
+        gallery_btn.setAccessibleName("Open the achievements gallery")
+        gallery_btn.clicked.connect(lambda: self.navigate and self.navigate("achievements"))
+        self.ach_layout.addWidget(gallery_btn, alignment=Qt.AlignmentFlag.AlignLeft)
 
         while self.levels_layout.count():
             item = self.levels_layout.takeAt(0)
@@ -148,7 +153,7 @@ class DashboardScreen(QWidget):
 
         summ = self.ctx.scheduler.progress_summary()
         self.prog_bar.setMaximum(summ["total"])
-        self.prog_bar.setValue(summ["mastered"])
+        animate_bar(self.prog_bar, summ["mastered"], reduce_motion=reduce)
         self.prog_label.setText(
             f"{summ['mastered']} of {summ['total']} skills mastered  \u00b7  "
             f"{summ['unlocked']} unlocked")

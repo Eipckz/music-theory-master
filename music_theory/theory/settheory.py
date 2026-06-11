@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterable, Sequence
+from typing import Iterable
 
 
 def _dedup_sorted(pcs: Iterable[int]) -> list[int]:
