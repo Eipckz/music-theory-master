@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an exercise type, lesson topic, or app improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature. If it's a new exercise or lesson topic, say what skill it should train.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter?
+      description: What does this let you learn or do that you can't today?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Exercises / drills
+        - Lessons / curriculum
+        - Ear training / audio
+        - Staff notation / display
+        - Appearance / accessibility
+        - Progress / achievements
+        - Other

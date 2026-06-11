@@ -1,0 +1,65 @@
+name: Release
+
+# Tag a commit `vX.Y.Z` and push it; this builds the Windows exe + installer
+# and attaches both (with SHA-256 checksums) to a GitHub Release.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run test suite before shipping
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests -q
+
+      - name: Fetch audio assets (hash-verified)
+        run: python build/fetch_audio_assets.py
+
+      - name: Build portable exe (PyInstaller)
+        run: ./build.ps1
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version installer\MusicTheoryMaster.iss
+          $setup = "installer\Output\MusicTheoryMaster-Setup.exe"
+          if (-not (Test-Path $setup)) { throw "installer not produced" }
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          "$hash  MusicTheoryMaster-Setup.exe" | Out-File -Encoding ascii "installer\Output\MusicTheoryMaster-Setup.exe.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            **Two ways to install, pick one:**
+            - `MusicTheoryMaster-Setup.exe` - installer with Start-menu shortcut and uninstaller (recommended)
+            - `MusicTheoryMaster.exe` - portable single file, no install needed
+
+            Both are fully offline: no accounts, no telemetry, zero network calls at runtime.
+            Verify your download against the matching `.sha256` file.
+          files: |
+            dist/MusicTheoryMaster.exe
+            dist/MusicTheoryMaster.exe.sha256
+            installer/Output/MusicTheoryMaster-Setup.exe
+            installer/Output/MusicTheoryMaster-Setup.exe.sha256
