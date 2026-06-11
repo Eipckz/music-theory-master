@@ -12,10 +12,7 @@ from PyQt6.QtCore import QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPen
 from PyQt6.QtWidgets import QWidget
 
-from ..theme import ACCENT_DIM, GOOD
-
-_PRESSED_WHITE = "#aac4f7"   # light accent tint
-_PRESSED_BLACK = ACCENT_DIM
+from .. import theme
 
 _WHITE_PCS = {0, 2, 4, 5, 7, 9, 11}
 _BLACK_PCS = {1, 3, 6, 8, 10}
@@ -57,8 +54,8 @@ class PianoWidget(QWidget):
         self._white_midis = [m for m in range(low_midi, high_midi + 1) if m % 12 in _WHITE_PCS]
         self.update()
 
-    def highlight(self, midis, color: str = GOOD) -> None:
-        c = QColor(color)
+    def highlight(self, midis, color: str = "") -> None:
+        c = QColor(color or theme.GOOD)
         for m in midis:
             self._highlight[m] = c
         self.update()
@@ -67,7 +64,7 @@ class PianoWidget(QWidget):
         self._highlight.clear()
         self.update()
 
-    def flash(self, midis, color: str = GOOD) -> None:
+    def flash(self, midis, color: str = "") -> None:
         self.clear_highlight()
         self.highlight(midis, color)
 
@@ -109,7 +106,11 @@ class PianoWidget(QWidget):
             if wm in self._highlight:
                 p.fillRect(rect, self._highlight[wm])
             elif wm in self._pressed:
-                p.fillRect(rect, QColor(_PRESSED_WHITE))
+                # light tint of the live accent so pressed keys match the theme
+                pressed_white = QColor(theme.ACCENT)
+                pressed_white.setAlpha(110)
+                p.fillRect(rect, QColor("#fafafa"))
+                p.fillRect(rect, pressed_white)
             else:
                 p.fillRect(rect, QColor("#fafafa"))
             p.setPen(QPen(QColor("#444"), 1))
@@ -126,7 +127,7 @@ class PianoWidget(QWidget):
             if bm in self._highlight:
                 p.fillRect(rect, self._highlight[bm].darker(110))
             elif bm in self._pressed:
-                p.fillRect(rect, QColor(_PRESSED_BLACK))
+                p.fillRect(rect, QColor(theme.ACCENT_DIM))
             else:
                 p.fillRect(rect, QColor("#202020"))
             p.setPen(QPen(QColor("#000"), 1))

@@ -22,7 +22,17 @@ _SCHEMA: dict[str, tuple[Any, type]] = {
     "instrument_program": (0, int),      # General MIDI program (0 = piano)
     "metronome_enabled": (True, bool),
     "default_tempo": (90, int),
-    "theme": ("dark", str),
+    "theme": ("dark", str),              # dark | light | high_contrast | sepia
+    "accent_color": ("", str),           # "#rrggbb" or "" for the theme default
+    "ui_scale": (0.0, float),            # 0 = auto (system font), else 0.9-2.0
+    "reduce_motion": (False, bool),      # skip celebration animations
+    "staff_size": ("comfortable", str),  # compact | comfortable | large
+    "staff_accidental_size": (1.0, float),
+    "staff_accidental_gap": (1.0, float),
+    "staff_notehead_style": ("filled", str),   # filled | outlined | high_contrast
+    "staff_note_labels": ("off", str),         # off | letters | letters_octave
+    "staff_line_highlight": (True, bool),
+    "staff_paper": ("", str),            # "#rrggbb" or "" for the theme paper
     "show_note_names": (True, bool),
     "placement_done": (False, bool),
     "name": ("Learner", str),

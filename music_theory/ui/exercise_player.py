@@ -17,7 +17,7 @@ from ..errors import guard
 from ..exercises.base import Exercise, InputMode, render_play
 from ..exercises.teaching import concept_for, hint_for
 from ..theory.pitch import Note
-from .theme import ACCENT, BAD, GOOD, TEXT_MUTED, WARN
+from . import theme
 from .widgets import PianoWidget, StaffWidget
 
 _DUR_LABELS = [("\U0001D15D 4", 4.0), ("\U0001D15E 2", 2.0), ("\u2669 1", 1.0),
@@ -454,16 +454,16 @@ class ExercisePlayer(QWidget):
         rows = []
         for i, (nm, v) in enumerate(zip(names, self._voices)):
             text = " ".join(Note.from_midi(m).name for m in v) or "(empty)"
-            count = f"  <span style='color:{TEXT_MUTED}'>[{len(v)}/{expected}]</span>" if expected else ""
+            count = f"  <span style='color:{theme.TEXT_MUTED}'>[{len(v)}/{expected}]</span>" if expected else ""
             if i == self._voice_idx:
-                rows.append(f"<b style='color:{ACCENT}'>▶ {nm} (entering):</b>  {text}{count}")
+                rows.append(f"<b style='color:{theme.ACCENT}'>▶ {nm} (entering):</b>  {text}{count}")
             else:
                 rows.append(f"<b>{nm}:</b>  {text}{count}")
         self.entry_label.setText("<br>".join(rows))
         if hasattr(self, "entry_piano"):
             self.entry_piano.clear_highlight()
             if self._voices:
-                self.entry_piano.highlight(self._voices[self._voice_idx], ACCENT)
+                self.entry_piano.highlight(self._voices[self._voice_idx], theme.ACCENT)
 
     # -- entry helpers -----------------------------------------------------
     def _add_entry_note(self, midi: int) -> None:
@@ -496,17 +496,17 @@ class ExercisePlayer(QWidget):
             parts = [n.name for n in notes]
             if (self.ex is not None and self.ex.input_mode == InputMode.NOTE_ENTRY
                     and self.ex.tags.get("given_first") is not None):
-                parts[0] = f"<span style='color:{TEXT_MUTED}'>{parts[0]} (given)</span>"
+                parts[0] = f"<span style='color:{theme.TEXT_MUTED}'>{parts[0]} (given)</span>"
             self.entry_label.setText("Your entry:  " + " ".join(parts))
         else:
             self.entry_label.setText(
-                f"Your entry:  <span style='color:{TEXT_MUTED}'>(play or click notes)</span>")
+                f"Your entry:  <span style='color:{theme.TEXT_MUTED}'>(play or click notes)</span>")
         if self.ex.tags.get("staff_prompt") is not None and self.ex.input_mode == InputMode.NOTE_ENTRY:
             self.staff.show()
             self.staff.set_notes(notes)
         if hasattr(self, "entry_piano"):
             self.entry_piano.clear_highlight()
-            self.entry_piano.highlight(self._entry, ACCENT)
+            self.entry_piano.highlight(self._entry, theme.ACCENT)
 
     def _add_rhythm(self, val: float) -> None:
         if not self._answered:
@@ -575,7 +575,7 @@ class ExercisePlayer(QWidget):
         return ""  # note/sequence/rhythm answers are spelled out in explanation
 
     def _show_feedback(self, correct: bool) -> None:
-        color = GOOD if correct else BAD
+        color = theme.GOOD if correct else theme.BAD
         if correct:
             plain = f"Correct! {self.ex.explanation}".strip()
             self.feedback.setText(
@@ -590,7 +590,7 @@ class ExercisePlayer(QWidget):
             teach = self.ex.teach or concept_for(self.ex.etype)
             body = " ".join(parts)
             if teach:
-                body += (f"<br><span style='color:{TEXT_MUTED}'>{teach}</span>")
+                body += (f"<br><span style='color:{theme.TEXT_MUTED}'>{teach}</span>")
             self.feedback.setText(f"<b style='color:{color}'>✗ Not quite.</b>  {body}")
             plain = "Not quite. " + " ".join(
                 [f"The answer was {ans}." if ans else "", self.ex.explanation or "",
@@ -609,7 +609,7 @@ class ExercisePlayer(QWidget):
             entered = [Note.from_midi(m) for m in self._entry] if self._entry else []
             self.staff.set_notes(entered, ghost=rev["staff"].get("notes", []))
         if "highlight" in rev and hasattr(self, "entry_piano"):
-            self.entry_piano.flash(rev["highlight"], GOOD if correct else WARN)
+            self.entry_piano.flash(rev["highlight"], theme.GOOD if correct else theme.WARN)
         if hasattr(self, "_choice_btns"):
             answer = str(self.ex.answer)
             for b in self._choice_btns:
