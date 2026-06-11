@@ -17,6 +17,16 @@ from music_theory.exercises.registry import generate
 from music_theory.exercises.teaching import concept_for
 
 
+def _skip_lesson(sess, qapp, max_pages: int = 12):
+    """If the session is showing a first-time mini-lesson, page through it
+    (what a learner does) so the exercise appears."""
+    for _ in range(max_pages):
+        if sess.lesson.isHidden():
+            return
+        sess.lesson._next()
+        qapp.processEvents()
+
+
 def _click_buttons(widget, *needles):
     clicked = 0
     for b in widget.findChildren(QPushButton):
@@ -60,6 +70,7 @@ def test_lesson_summary_after_ten_then_continue(qapp, window):
     window.go_to("session")
     qapp.processEvents()
     for _ in range(LESSON_LEN):
+        _skip_lesson(sess, qapp)
         ex = sess.player.ex
         assert ex is not None
         sess.player._grade(ex.answer)
@@ -88,6 +99,7 @@ def test_advanced_learner_session_never_crashes(qapp, window):
     for _ in range(40):
         if not sess.summary.isHidden():
             sess._continue()
+        _skip_lesson(sess, qapp)
         ex = sess.player.ex
         if ex is None:
             sess._load_next()

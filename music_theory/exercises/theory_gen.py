@@ -20,6 +20,7 @@ _QUALITY_NAMES = {
     "major": "Major", "minor": "Minor", "diminished": "Diminished", "augmented": "Augmented",
     "maj7": "Major 7th", "dom7": "Dominant 7th", "min7": "Minor 7th",
     "halfdim7": "Half-diminished 7th", "dim7": "Fully-diminished 7th", "minMaj7": "Minor-major 7th",
+    "augMaj7": "Augmented-major 7th", "dom7b5": "Dominant 7th (b5)",
 }
 
 
@@ -202,7 +203,12 @@ def triad_quality(difficulty: float, rng: random.Random) -> Exercise:
 
 @register("seventh_quality", "theory", "Seventh-Chord Quality")
 def seventh_quality(difficulty: float, rng: random.Random) -> Exercise:
-    pool = ["dom7", "maj7", "min7"] if difficulty < 4 else SEVENTH_QUALITIES
+    if difficulty < 4:
+        pool = ["dom7", "maj7", "min7"]
+    elif difficulty < 7:
+        pool = SEVENTH_QUALITIES
+    else:
+        pool = SEVENTH_QUALITIES + ["augMaj7", "dom7b5"]
     quality = rng.choice(pool)
     root = Note.from_midi(U.random_midi(rng, 53, 65, white_only=difficulty < 5), prefer_sharps=True)
     ch = seventh(root, quality)

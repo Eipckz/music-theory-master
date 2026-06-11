@@ -53,9 +53,11 @@ class PlacementScreen(QWidget):
         frame, lay = card("How it works")
         lay.addWidget(subtle(
             "Answer a short, adapting set of questions across theory, aural skills, "
-            "and piano. Difficulty rises when you're correct and eases when you're not, "
-            "so it quickly finds your level - and stops early if questions get too hard. "
-            "Your results unlock the right starting point in the course."))
+            "and piano. Difficulty climbs while you keep answering correctly and eases "
+            "when you miss, then the test double-checks your level with a couple of "
+            "confirmation questions - so the result is a level you're truly secure at, "
+            "never an inflated one. Your results unlock the right starting point in "
+            "the course, and you can always climb quickly by doing well in lessons."))
         row = QHBoxLayout()
         self.start_btn = QPushButton("Start placement")
         self.start_btn.clicked.connect(self._start)

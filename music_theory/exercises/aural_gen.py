@@ -80,8 +80,12 @@ def chord_quality_ear(difficulty: float, rng: random.Random) -> Exercise:
         pool = ["major", "minor"]
     elif difficulty < 4:
         pool = ["major", "minor", "diminished", "augmented"]
-    else:
+    elif difficulty < 7:
         pool = ["major", "minor", "diminished", "augmented", "dom7", "maj7", "min7", "halfdim7", "dim7"]
+    else:
+        # the full modern palette - the colors contemporary ears live on
+        pool = ["major", "minor", "diminished", "augmented", "dom7", "maj7", "min7",
+                "halfdim7", "dim7", "minMaj7", "augMaj7", "dom7b5"]
     quality = rng.choice(pool)
     root = U.random_midi(rng, 55, 64)
     builder = triad if quality in ("major", "minor", "diminished", "augmented") else seventh
@@ -149,6 +153,110 @@ def melodic_dictation(difficulty: float, rng: random.Random) -> Exercise:
         tags={"replayable": True, "match": "exact", "given_first": midis[0],
               "key_sig": key_signature(tonic, mode),
               "staff_prompt": {"clef": "treble", "notes": [], "key_sig": key_signature(tonic, mode)}},
+    )
+
+
+# -- multi-part dictation ----------------------------------------------------
+_VOICE_RANGES = {           # comfortable SATB-ish ranges (midi)
+    "Soprano": (60, 79),
+    "Alto": (55, 72),
+    "Tenor": (48, 65),
+    "Bass": (40, 57),
+}
+_VOICE_SETS = {2: ["Soprano", "Bass"], 3: ["Soprano", "Alto", "Bass"],
+               4: ["Soprano", "Alto", "Tenor", "Bass"]}
+
+
+def _nearest_chord_tone(prev: int, pcs: list[int], lo: int, hi: int,
+                        below: int | None, above: int | None) -> int:
+    """The chord tone closest to ``prev`` that stays in range and keeps voice
+    order (strictly between the neighbouring voices when given)."""
+    best, best_cost = None, None
+    for pc in pcs:
+        for octave in range(lo // 12, hi // 12 + 2):
+            cand = octave * 12 + pc
+            if not (lo <= cand <= hi):
+                continue
+            if below is not None and cand <= below:
+                continue
+            if above is not None and cand >= above:
+                continue
+            cost = abs(cand - prev)
+            if best_cost is None or cost < best_cost:
+                best, best_cost = cand, cost
+    return best if best is not None else max(lo, min(hi, prev))
+
+
+def _voice_progression(rng: random.Random, key: str, mode: str,
+                       prog: list[str], n_voices: int) -> list[list[int]]:
+    """Voice a progression into ``n_voices`` independent lines (top first)."""
+    names = _VOICE_SETS[n_voices]
+    chords_pcs: list[list[int]] = []
+    bass_pcs: list[int] = []
+    for fig in prog:
+        try:
+            ch = roman_to_chord(fig.replace("°", "o"), key, mode)
+        except Exception:  # noqa: BLE001 - same resilience as harmonic dictation
+            ch = roman_to_chord("I", key, mode)
+        chords_pcs.append([n.pc for n in ch.members])
+        bass_pcs.append(ch.bass.pc)
+    voices: list[list[int]] = [[] for _ in names]
+    for step, pcs in enumerate(chords_pcs):
+        prev_col = [v[step - 1] if step else None for v in voices]
+        col: list[int | None] = [None] * len(names)
+        # bass first (lowest voice anchors the chord) ...
+        b = len(names) - 1
+        lo, hi = _VOICE_RANGES[names[b]]
+        target = prev_col[b] if prev_col[b] is not None else (lo + hi) // 2
+        col[b] = _nearest_chord_tone(target, [bass_pcs[step]], lo, hi, None, None)
+        # ... then upper voices top-down, keeping strict ordering
+        for vi in range(b - 1, -1, -1):
+            lo, hi = _VOICE_RANGES[names[vi]]
+            start = prev_col[vi] if prev_col[vi] is not None else hi - 5
+            below = col[vi + 1]
+            col[vi] = _nearest_chord_tone(start, pcs, lo, hi, below, None)
+        for vi in range(len(names)):
+            voices[vi].append(int(col[vi]))
+    return voices
+
+
+@register("multipart_dictation", "aural", "Multi-Part Dictation")
+def multipart_dictation(difficulty: float, rng: random.Random) -> Exercise:
+    """Two to four simultaneous voices; transcribe every line. The bridge from
+    single-line dictation to full-texture hearing (outer voices first!)."""
+    n_voices = 2 if difficulty < 5 else 3 if difficulty < 7.5 else 4
+    mode = "major" if difficulty < 5 else rng.choice(["major", "minor"])
+    key = U.pick_key_name(rng, difficulty)
+    if difficulty < 4:
+        progs = [["I", "V", "I"], ["I", "IV", "I"], ["I", "IV", "V"]]
+    elif difficulty < 6.5:
+        progs = [["I", "IV", "V", "I"], ["I", "vi", "IV", "V"], ["I", "ii6", "V", "I"]]
+    else:
+        progs = [["I", "vi", "ii", "V", "I"], ["I", "IV", "V6", "vi"],
+                 ["i", "iv", "V", "i"], ["I", "V/V", "V", "I"]]
+    prog = rng.choice(progs)
+    if mode == "minor":
+        prog = [p.lower() if p in ("I", "IV") else p for p in prog]
+    names = _VOICE_SETS[n_voices]
+    voices = _voice_progression(rng, key, mode, prog, n_voices)
+    chords = [[v[i] for v in voices] for i in range(len(prog))]
+    lines = "<br>".join(
+        f"{nm}: " + " ".join(Note.from_midi(m).name for m in v)
+        for nm, v in zip(names, voices))
+    tonic = Note.parse(key + "4")
+    return Exercise(
+        skill_id="aural.multipart", domain="aural", etype="multipart_dictation",
+        prompt=f"Multi-part dictation in {key} {mode}: {len(prog)} chords, "
+               f"{n_voices} voices ({', '.join(names)}). The first chord is given. "
+               "Notate every voice - outer voices first, then fill the middle.",
+        input_mode=InputMode.MULTI_VOICE, answer=voices,
+        explanation=f"The voices were:<br>{lines}",
+        difficulty=difficulty,
+        play={"mode": "harmonic", "chords": chords, "tempo": 66, "beats": 2.0},
+        tags={"replayable": True, "match": "exact",
+              "voice_names": names,
+              "given_first_each": [v[0] for v in voices],
+              "key_sig": key_signature(tonic, mode)},
     )
 
 

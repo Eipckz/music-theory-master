@@ -86,6 +86,13 @@ _CONCEPTS: dict[str, str] = {
         "Cadences are how phrases end. Authentic = V->I (final), Half = ends on V "
         "(unfinished), Plagal = IV->I ('Amen'), Deceptive = V->vi (surprise). Listen "
         "to the last two chords and whether it sounds resolved.",
+    "multipart_dictation":
+        "Hear a texture in layers, not all at once. Start with the OUTER voices: "
+        "the soprano (top line) is the most exposed and the bass anchors the "
+        "harmony - transcribe those two first. Then use the chord each beat "
+        "implies to predict what the inner voices can be doing, and listen for "
+        "which chord tone each one actually takes. Replay focusing your ear on "
+        "one voice at a time (singing along with a voice locks it in).",
     "error_detection":
         "Read the score while you listen and follow note by note. The wrong note "
         "will clash with the printed pitch - usually a step too high or low. Pinpoint "
@@ -151,6 +158,7 @@ _HINTS: dict[str, str] = {
     "chord_quality_ear": "Focus on the 3rd: major = bright, minor = dark, dim = tense.",
     "cadence_ear": "Listen to the final two chords - does it sound finished?",
     "melodic_dictation": "Track each note as a step or leap from the previous one.",
+    "multipart_dictation": "Outer voices first: soprano, then bass, then fill the middle.",
     "key_signature_identification": "Last sharp = leading tone; 2nd-to-last flat = the key.",
 }
 

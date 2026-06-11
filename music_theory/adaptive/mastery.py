@@ -133,5 +133,6 @@ class MasteryModel:
             m = {k: v for k, v in m.items() if k in skill_ids}
         seen = [v for v in m.values() if v.get("n_attempts", 0) > 0]
         if not seen:
-            return 1000.0
+            # No evidence yet: report the true floor, not a flattering default.
+            return _BASE_RATING
         return sum(v["rating"] for v in seen) / len(seen)

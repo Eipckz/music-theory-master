@@ -34,6 +34,27 @@ def build_context() -> AppContext:
     return ctx
 
 
+def warmup_async() -> None:
+    """Pre-load heavy, lazily-imported machinery off the UI thread so the first
+    exercise appears instantly: music21 (~1s import, used for roman numerals
+    and set classes) and the additive synth's note cache."""
+    import threading
+
+    def _warm() -> None:
+        try:
+            from .theory.chords import roman_to_chord
+            roman_to_chord("V7", "C", "major")          # pulls in music21
+        except Exception:  # noqa: BLE001 - warmup must never crash
+            pass
+        try:
+            from .audio.synth import _render_note
+            _render_note(60, 1.0, 96, 44100)            # primes numpy paths
+        except Exception:  # noqa: BLE001
+            pass
+
+    threading.Thread(target=_warm, name="warmup", daemon=True).start()
+
+
 def main() -> int:
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtGui import QIcon
@@ -67,6 +88,7 @@ def main() -> int:
 
     window = MainWindow(ctx)
     window.show()
+    warmup_async()
     rc = app.exec()
     try:
         ctx.engine.close()

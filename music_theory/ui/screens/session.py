@@ -11,9 +11,11 @@ from PyQt6.QtWidgets import (
 )
 
 from ...adaptive import MasteryModel, level_for_rating
+from ...curriculum.lessons import lesson_for
 from ...errors import guard
 from ..common import card, heading, subtle
 from ..exercise_player import ExercisePlayer
+from ..lesson_view import LessonView
 
 LESSON_LEN = 10
 
@@ -38,8 +40,19 @@ class SessionScreen(QWidget):
         self.stat = subtle("")
         header.addWidget(self.stat)
         root.addLayout(header)
+        skill_row = QHBoxLayout()
         self.skill_label = subtle("")
-        root.addWidget(self.skill_label)
+        skill_row.addWidget(self.skill_label)
+        self.lesson_btn = QPushButton("📖 Lesson")
+        self.lesson_btn.setObjectName("Secondary")
+        self.lesson_btn.setToolTip("Re-read the mini-lesson for this skill")
+        self.lesson_btn.clicked.connect(self._review_lesson)
+        self.lesson_btn.hide()
+        skill_row.addWidget(self.lesson_btn)
+        skill_row.addStretch(1)
+        self.level_label = subtle("")
+        skill_row.addWidget(self.level_label)
+        root.addLayout(skill_row)
         self.lesson_bar = QProgressBar()
         self.lesson_bar.setMaximum(LESSON_LEN)
         self.lesson_bar.setValue(0)
@@ -48,6 +61,10 @@ class SessionScreen(QWidget):
 
         self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi)
         root.addWidget(self.player, 1)
+
+        self.lesson = LessonView(self.ctx.engine)
+        self.lesson.hide()
+        root.addWidget(self.lesson, 1)
 
         self.summary = QWidget()
         self.summary_layout = QVBoxLayout(self.summary)
@@ -66,6 +83,7 @@ class SessionScreen(QWidget):
         self._weak_mode = True
         self._reset_lesson()
         self.summary.hide()
+        self.lesson.hide()
         self.player.show()
         self._load_next()
 
@@ -79,6 +97,7 @@ class SessionScreen(QWidget):
             self._show_summary()
             return
         self.summary.hide()
+        self.lesson.hide()
         self.player.show()
         self.pick = self.ctx.scheduler.next_exercise(source="course", weak=self._weak_mode)
         if self.pick is None:
@@ -88,10 +107,68 @@ class SessionScreen(QWidget):
         skill = self.ctx.curriculum.get(self.pick.skill_id)
         title = skill.title if skill else self.pick.skill_id
         self.skill_label.setText(f"Skill: <b>{title}</b>  \u00b7  {self.pick.reason}")
+        self.lesson_btn.setVisible(bool(lesson_for(self.pick.skill_id)))
+        self._update_level_label(skill.domain if skill else self.pick.exercise.domain)
+        if self._maybe_teach(skill):
+            return
         self.player.set_exercise(
             self.pick.exercise, on_answer=self._on_answer, on_next=self._load_next,
             badge=f"{skill.level if skill else ''}  \u00b7  {self.pick.exercise.domain.title()}",
         )
+
+    def _maybe_teach(self, skill) -> bool:
+        """Show the skill's mini-lesson the first time it appears (Duolingo
+        style: teach the concept, then drill it). Returns True if teaching."""
+        if skill is None:
+            return False
+        if self.ctx.db.kv_get(f"taught.{skill.id}"):
+            return False
+        pages = lesson_for(skill.id)
+        if not pages:
+            return False
+        self.player.hide()
+        self.lesson.set_lesson(skill.title, pages, on_done=self._finish_teaching)
+        self.lesson.show()
+        return True
+
+    @guard("Session._finish_teaching")
+    def _finish_teaching(self) -> None:
+        if self.pick is not None:
+            self.ctx.db.kv_set(f"taught.{self.pick.skill_id}", True)
+        self.lesson.hide()
+        self.player.show()
+        if self.pick is None:
+            return
+        skill = self.ctx.curriculum.get(self.pick.skill_id)
+        self.player.set_exercise(
+            self.pick.exercise, on_answer=self._on_answer, on_next=self._load_next,
+            badge=f"{skill.level if skill else ''}  \u00b7  {self.pick.exercise.domain.title()}",
+        )
+
+    @guard("Session._review_lesson")
+    def _review_lesson(self) -> None:
+        """Re-open the current skill's lesson on demand."""
+        if self.pick is None:
+            return
+        skill = self.ctx.curriculum.get(self.pick.skill_id)
+        pages = lesson_for(self.pick.skill_id)
+        if not skill or not pages:
+            return
+        self.player.hide()
+        self.summary.hide()
+        self.lesson.set_lesson(skill.title, pages, on_done=self._resume_after_review)
+        self.lesson.show()
+
+    @guard("Session._resume_after_review")
+    def _resume_after_review(self) -> None:
+        """Return to the in-progress exercise exactly as it was left."""
+        self.lesson.hide()
+        self.player.show()
+
+    def _update_level_label(self, domain: str) -> None:
+        ids = [s.id for s in self.ctx.curriculum.by_domain(domain) if s.schedulable]
+        level = level_for_rating(MasteryModel.overall_rating(self.ctx.db, ids))
+        self.level_label.setText(f"{domain.title()} level: <b>{level}</b>")
 
     @guard("Session._on_answer")
     def _on_answer(self, correct: bool, response_ms: int) -> None:
@@ -123,6 +200,7 @@ class SessionScreen(QWidget):
         acc = int(100 * self.correct / self.answered) if self.answered else 0
         self.stat.setText(f"This session: {self.correct}/{self.answered} correct ({acc}%)")
         self.lesson_bar.setValue(min(LESSON_LEN, self.lesson_n))
+        self._update_level_label(domain)
 
         after_level = level_for_rating(MasteryModel.overall_rating(self.ctx.db, domain_ids))
         after_mastered = self.ctx.curriculum.is_mastered(self.ctx.db, self.pick.skill_id)
@@ -133,6 +211,7 @@ class SessionScreen(QWidget):
 
     def _show_summary(self) -> None:
         self.player.hide()
+        self.lesson.hide()
         while self.summary_layout.count():
             w = self.summary_layout.takeAt(0).widget()
             if w:

@@ -35,6 +35,8 @@ class ExercisePlayer(QWidget):
         self._entry: list[int] = []
         self._seq: list[str] = []
         self._rhythm: list[float] = []
+        self._voices: list[list[int]] = []
+        self._voice_idx = 0
         self._answered = False
         self._show_next = True
         self._t0 = 0.0
@@ -107,6 +109,7 @@ class ExercisePlayer(QWidget):
         self._on_next = on_next
         self._show_next = show_next
         self._entry, self._seq, self._rhythm = [], [], []
+        self._voices, self._voice_idx = [], 0
         self._answered = False
         self._t0 = time.time()
         self.badge.setText(badge or f"{ex.domain.title()}  \u00b7  difficulty {ex.difficulty:.1f}")
@@ -180,6 +183,8 @@ class ExercisePlayer(QWidget):
             self._build_rhythm()
         elif mode == InputMode.SEQUENCE:
             self._build_sequence()
+        elif mode == InputMode.MULTI_VOICE:
+            self._build_multi_voice()
 
     def _build_choices(self) -> None:
         self._choice_btns = []
@@ -275,6 +280,109 @@ class ExercisePlayer(QWidget):
         row.addWidget(back); row.addStretch(1); row.addWidget(submit)
         self.input_layout.addLayout(row)
         self._refresh_seq()
+
+    def _build_multi_voice(self) -> None:
+        names = self.ex.tags.get("voice_names", ["Voice 1", "Voice 2"])
+        given = self.ex.tags.get("given_first_each")
+        self._voices = [[int(g)] if given else [] for g in (given or [None] * len(names))]
+        self._voice_idx = 0
+        # voice selector
+        sel_row = QHBoxLayout()
+        sel_row.addWidget(QLabel("Entering:"))
+        self._voice_btns = []
+        group = QButtonGroup(self)
+        group.setExclusive(True)
+        for i, nm in enumerate(names):
+            b = QPushButton(nm)
+            b.setCheckable(True)
+            b.setObjectName("Choice")
+            b.clicked.connect(lambda _=False, idx=i: self._select_voice(idx))
+            sel_row.addWidget(b)
+            group.addButton(b)
+            self._voice_btns.append(b)
+        self._voice_btns[0].setChecked(True)
+        sel_row.addStretch(1)
+        self.input_layout.addLayout(sel_row)
+        self.entry_label = QLabel()
+        self.entry_label.setTextFormat(Qt.TextFormat.RichText)
+        self.input_layout.addWidget(self.entry_label)
+        self.entry_piano = PianoWidget(36, 84)
+        self.entry_piano.notePressed.connect(self._add_voice_note)
+        self.input_layout.addWidget(self.entry_piano)
+        if self.midi is not None:
+            try:
+                self.midi.noteOn.connect(self._midi_voice_note)
+            except Exception:  # noqa: BLE001
+                pass
+        row = QHBoxLayout()
+        back = QPushButton("⌫ Backspace"); back.setObjectName("Secondary")
+        back.clicked.connect(self._backspace_voice)
+        clear = QPushButton("Clear voice"); clear.setObjectName("Secondary")
+        clear.clicked.connect(self._clear_voice)
+        submit = QPushButton("Submit all voices")
+        submit.clicked.connect(lambda: self._grade([list(v) for v in self._voices]))
+        row.addWidget(back); row.addWidget(clear); row.addStretch(1); row.addWidget(submit)
+        self.input_layout.addLayout(row)
+        self._refresh_voices()
+
+    def _select_voice(self, idx: int) -> None:
+        self._voice_idx = idx
+        self._refresh_voices()
+
+    def _add_voice_note(self, midi: int) -> None:
+        if self._answered or not self._voices:
+            return
+        self._voices[self._voice_idx].append(int(midi))
+        if self.engine:
+            self.engine.play_note(int(midi), dur=0.6)
+        # auto-advance to the next voice once this line is full
+        expected = self._expected_voice_len()
+        if expected and len(self._voices[self._voice_idx]) >= expected \
+                and self._voice_idx < len(self._voices) - 1:
+            self._voice_idx += 1
+            self._voice_btns[self._voice_idx].setChecked(True)
+        self._refresh_voices()
+
+    def _midi_voice_note(self, midi: int, _vel: int) -> None:
+        self._add_voice_note(midi)
+
+    def _expected_voice_len(self) -> int:
+        ans = self.ex.answer if self.ex else None
+        if isinstance(ans, (list, tuple)) and ans and isinstance(ans[0], (list, tuple)):
+            return len(ans[0])
+        return 0
+
+    def _backspace_voice(self) -> None:
+        v = self._voices[self._voice_idx] if self._voices else None
+        given = self.ex.tags.get("given_first_each")
+        floor = 1 if given else 0
+        if v and len(v) > floor:
+            v.pop()
+            self._refresh_voices()
+
+    def _clear_voice(self) -> None:
+        if not self._voices:
+            return
+        given = self.ex.tags.get("given_first_each")
+        self._voices[self._voice_idx] = [int(given[self._voice_idx])] if given else []
+        self._refresh_voices()
+
+    def _refresh_voices(self) -> None:
+        names = self.ex.tags.get("voice_names", [])
+        expected = self._expected_voice_len()
+        rows = []
+        for i, (nm, v) in enumerate(zip(names, self._voices)):
+            text = " ".join(Note.from_midi(m).name for m in v) or "(empty)"
+            count = f"  <span style='color:#8b93a3'>[{len(v)}/{expected}]</span>" if expected else ""
+            if i == self._voice_idx:
+                rows.append(f"<b style='color:{ACCENT}'>▶ {nm}:</b>  {text}{count}")
+            else:
+                rows.append(f"<b>{nm}:</b>  {text}{count}")
+        self.entry_label.setText("<br>".join(rows))
+        if hasattr(self, "entry_piano"):
+            self.entry_piano.clear_highlight()
+            if self._voices:
+                self.entry_piano.highlight(self._voices[self._voice_idx], ACCENT)
 
     # -- entry helpers -----------------------------------------------------
     def _add_entry_note(self, midi: int) -> None:
@@ -425,6 +533,8 @@ class ExercisePlayer(QWidget):
             self._grade(list(self._rhythm))
         elif mode == InputMode.SEQUENCE:
             self._grade(list(self._seq))
+        elif mode == InputMode.MULTI_VOICE:
+            self._grade([list(v) for v in self._voices])
 
     # -- util --------------------------------------------------------------
     def _clear_layout(self, layout) -> None:

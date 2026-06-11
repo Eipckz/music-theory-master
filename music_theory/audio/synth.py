@@ -6,6 +6,7 @@ even if fluidsynth/soundfonts are missing."""
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Sequence
 
 import numpy as np
@@ -35,7 +36,16 @@ def _envelope(n_samples: int, sr: int) -> np.ndarray:
     return env
 
 
+@lru_cache(maxsize=512)
 def _render_note(midi: int, dur: float, vel: int, sr: int) -> np.ndarray:
+    """Memoized note renderer. Exercises reuse a small set of (pitch, duration,
+    velocity) combinations heavily - replays and arpeggios become near-free.
+    Callers only read the returned buffer (it is mixed into a fresh output
+    array), so sharing one cached instance is safe."""
+    return _render_note_uncached(midi, dur, vel, sr)
+
+
+def _render_note_uncached(midi: int, dur: float, vel: int, sr: int) -> np.ndarray:
     freq = midi_to_freq(midi)
     length = max(1, int((dur + _RELEASE) * sr))
     t = np.arange(length, dtype=np.float32) / sr
@@ -63,7 +73,8 @@ class SynthBackend:
         n = int(end * self.sr) + 1
         mono = np.zeros(n, dtype=np.float32)
         for ev in events:
-            seg = _render_note(ev["midi"], ev["dur"], ev.get("vel", 96), self.sr)
+            seg = _render_note(int(ev["midi"]), round(float(ev["dur"]), 4),
+                               int(ev.get("vel", 96)), self.sr)
             start = int(ev["start"] * self.sr)
             stop = min(start + seg.shape[0], n)
             mono[start:stop] += seg[: stop - start]

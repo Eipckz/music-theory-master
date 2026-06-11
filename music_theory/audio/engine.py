@@ -36,6 +36,9 @@ class AudioEngine:
         self._lock = threading.Lock()
         self.backend = None
         self.backend_error: str = ""
+        self._cache: dict = {}          # rendered-buffer cache (pre-volume)
+        self._cache_order: list = []
+        self._closed = False
         self._init_backend()
 
     # -- backend selection ------------------------------------------------
@@ -47,7 +50,8 @@ class AudioEngine:
     def _init_backend(self) -> None:
         choice = self._setting("audio_backend", "auto")
         soundfont = self._setting("soundfont", "")
-        if choice in ("auto", "fluidsynth"):
+        if choice == "fluidsynth":
+            # Explicit request: try synchronously so Settings can report failure.
             try:
                 from .fluidbackend import FluidBackend
 
@@ -55,9 +59,35 @@ class AudioEngine:
                 return
             except Exception as exc:  # noqa: BLE001 - fall back gracefully
                 self.backend_error = f"{type(exc).__name__}: {exc}"
-                if choice == "fluidsynth":
-                    pass  # explicit request failed; still fall back to synth
         self.backend = SynthBackend(self.sr)
+        if choice == "auto":
+            # Upgrade to the SoundFont backend off the UI thread: the synth is
+            # ready instantly, so startup never waits on soundfont loading.
+            threading.Thread(target=self._upgrade_to_fluid,
+                             args=(soundfont,), daemon=True).start()
+
+    _FLUID_CREATE_LOCK = threading.Lock()   # never load the DLL concurrently
+
+    def _upgrade_to_fluid(self, soundfont: str) -> None:
+        try:
+            from .fluidbackend import FluidBackend
+
+            with AudioEngine._FLUID_CREATE_LOCK:
+                if self._closed:
+                    return
+                fluid = FluidBackend(soundfont=soundfont, sample_rate=self.sr)
+        except Exception as exc:  # noqa: BLE001 - synth keeps working
+            self.backend_error = f"{type(exc).__name__}: {exc}"
+            return
+        adopted = False
+        with self._lock:
+            if not self._closed and getattr(self.backend, "name", "") == "synth":
+                self.backend = fluid
+                adopted = True
+        if adopted:
+            self._cache.clear()  # synth-rendered buffers are stale now
+        else:
+            fluid.close()        # engine closed (or replaced) while we loaded
 
     @property
     def backend_name(self) -> str:
@@ -65,17 +95,41 @@ class AudioEngine:
 
     def reload_backend(self) -> None:
         old = self.backend
+        self._cache.clear()
+        self._cache_order.clear()
         self._init_backend()
         if old is not None and old is not self.backend:
             old.close()
 
     # -- rendering / playback --------------------------------------------
+    _CACHE_MAX = 12
+
     def render(self, event_list: Sequence[dict], program: Optional[int] = None) -> np.ndarray:
         prog = self._setting("instrument_program", 0) if program is None else program
-        with self._lock:
-            buf = self.backend.render(event_list, program=int(prog))
+        key = self._cache_key(event_list, int(prog))
+        buf = self._cache.get(key) if key is not None else None
+        if buf is None:
+            with self._lock:
+                buf = self.backend.render(event_list, program=int(prog))
+            if key is not None:
+                self._cache[key] = buf
+                self._cache_order.append(key)
+                while len(self._cache_order) > self._CACHE_MAX:
+                    self._cache.pop(self._cache_order.pop(0), None)
         vol = float(self._setting("master_volume", 0.8))
         return (buf * max(0.0, min(1.0, vol))).astype(np.float32)
+
+    @staticmethod
+    def _cache_key(event_list: Sequence[dict], prog: int):
+        """Hashable identity of a render request (replays hit the cache)."""
+        try:
+            return (prog, tuple(
+                (round(float(e["start"]), 4), round(float(e["dur"]), 4),
+                 int(e["midi"]), int(e.get("vel", 96)))
+                for e in event_list
+            ))
+        except (KeyError, TypeError, ValueError):
+            return None
 
     def play_events(
         self, event_list: Sequence[dict], program: Optional[int] = None, block: bool = False
@@ -138,6 +192,8 @@ class AudioEngine:
         return self.play_sequence(items, tempo=tempo, block=block)
 
     def close(self) -> None:
+        self._closed = True
         self.stop()
-        if self.backend is not None:
-            self.backend.close()
+        with self._lock:
+            if self.backend is not None:
+                self.backend.close()

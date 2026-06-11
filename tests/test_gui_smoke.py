@@ -45,6 +45,11 @@ def test_session_answer_flow(qapp, window):
         if not sess.summary.isHidden():   # lessons end every 10 items with a summary
             sess._continue()
             qapp.processEvents()
+        for _ in range(12):               # first-time skills teach before drilling
+            if sess.lesson.isHidden():
+                break
+            sess.lesson._next()
+            qapp.processEvents()
         ex = sess.player.ex
         if ex is None:
             break

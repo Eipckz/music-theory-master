@@ -38,22 +38,48 @@ def test_due_scheduling_increases_interval(db):
     assert second.stability > first.stability
 
 
+def _run_placement(true_theta, trial, guess=0.0):
+    rng = random.Random(trial)
+    pt = PlacementTest(domains=["theory"], rng=rng)
+    while not pt.finished:
+        pt.next_item()
+        d = pt.state["theory"].theta
+        p = 1.0 / (1.0 + math.exp((d - true_theta) * 0.7))
+        pt.submit(rng.random() < guess + (1 - guess) * p)
+    return pt.results()["theory"]["theta"]
+
+
 def test_placement_converges():
+    """The 2-up/1-down design deliberately anchors on the ~71%-correct point
+    (a level the learner is *secure* at), so estimates sit at or slightly
+    below true ability - never far above it."""
     for true_theta in (1.5, 8.0):
-        ests = []
-        for trial in range(15):
-            rng = random.Random(trial)
-            pt = PlacementTest(domains=["theory"], rng=rng)
-            while not pt.finished:
-                ex = pt.next_item()
-                d = pt.state["theory"].theta
-                pt.submit(_answer(d, true_theta, rng))
-            ests.append(pt.results()["theory"]["theta"])
+        ests = [_run_placement(true_theta, trial) for trial in range(15)]
         mean = sum(ests) / len(ests)
         if true_theta < 5:
-            assert mean < 4.0
+            assert mean < 3.0
         else:
-            assert mean > 6.0
+            assert mean > 5.0
+
+
+def test_placement_resists_overestimation():
+    """Even with a 25% multiple-choice guessing floor, a true beginner must
+    not be placed above the Beginner/Early boundary on average, and lucky
+    streaks must stay rare."""
+    ests = [_run_placement(0.5, trial, guess=0.25) for trial in range(40)]
+    mean = sum(ests) / len(ests)
+    assert mean < 1.5
+    assert sum(1 for e in ests if e > 2.5) / len(ests) < 0.1
+
+
+def test_placement_caps_at_demonstrated_difficulty():
+    """A learner who never answers anything correctly places at the floor."""
+    rng = random.Random(7)
+    pt = PlacementTest(domains=["theory"], rng=rng)
+    while not pt.finished:
+        pt.next_item()
+        pt.submit(False)
+    assert pt.results()["theory"]["theta"] <= 0.5
 
 
 def test_scheduler_bootstrap_and_pick(db):

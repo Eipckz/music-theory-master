@@ -14,6 +14,7 @@ class InputMode(str, Enum):
     PIANO = "piano"                # play pitches on keyboard - set/list of midis
     RHYTHM = "rhythm"              # tapped/selected durations
     SEQUENCE = "sequence"          # ordered list of labels (e.g. row forms)
+    MULTI_VOICE = "multi_voice"    # several simultaneous lines - list of midi lists
 
 
 def normalize_answer(value: Any) -> str:
@@ -49,6 +50,8 @@ class Exercise:
             return _grade_set(response, self.answer, self.tags.get("match", "pc"))
         if self.input_mode == InputMode.RHYTHM:
             return _grade_sequence(response, self.answer, "exact")
+        if self.input_mode == InputMode.MULTI_VOICE:
+            return _grade_voices(response, self.answer, self.tags.get("match", "exact"))
         return False
 
 
@@ -76,6 +79,15 @@ def _grade_set(response: Any, answer: Any, match: str) -> bool:
     if match == "pc":
         return {x % 12 for x in r} == {x % 12 for x in a}
     return r == a
+
+
+def _grade_voices(response: Any, answer: Any, match: str) -> bool:
+    """Every voice must match its expected line (same voice count and order)."""
+    r = list(response or [])
+    a = list(answer or [])
+    if len(r) != len(a):
+        return False
+    return all(_grade_sequence(rv, av, match) for rv, av in zip(r, a))
 
 
 def _as_cmp(x: Any) -> Any:

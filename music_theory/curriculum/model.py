@@ -86,8 +86,8 @@ class Curriculum:
                 continue
             lo, hi = s.diff_range
             cur = db.get_mastery(s.id) or {}
-            if lo <= theta + 0.5:
-                prob = 0.62 if hi <= theta else 0.4
+            if lo <= theta:
+                prob = 0.62 if hi <= theta else 0.35
                 seed_rating = min(rating, rating_for_difficulty(hi))
                 # A retake must never erase real progress: keep the better of
                 # the existing and the seeded estimates.
@@ -178,6 +178,10 @@ _SKILLS: list[Skill] = [
     # ---- Advanced ----
     _S("aural.harmonic_dictation", "Harmonic Dictation", "aural", "Advanced",
        ("harmonic_dictation",), ("aural.cadences", "harmony.roman_numerals"), (3.0, 9.0)),
+    _S("aural.multipart", "Multi-Part Dictation", "aural", "Advanced",
+       ("multipart_dictation",), ("aural.melodic_dictation", "aural.harmonic_dictation"), (3.0, 10.0),
+       description="Transcribe two, three, then four simultaneous voices - "
+                   "the bridge from single-line hearing to full-texture hearing."),
     _S("harmony.chromatic", "Chromatic Harmony", "theory", "Advanced",
        ("roman_numeral_analysis",), ("harmony.roman_build", "chords.seventh_quality"), (6.0, 9.5),
        description="Secondary function, mixture, Neapolitan, augmented sixths."),
