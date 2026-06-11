@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from typing import Iterable, Optional, Sequence
+from typing import Sequence
 
 from ..theory.pitch import Note
 

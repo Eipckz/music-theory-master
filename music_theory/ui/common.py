@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
 
 def card(title: str = "") -> tuple[QFrame, QVBoxLayout]:

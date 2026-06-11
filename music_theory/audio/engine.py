@@ -14,7 +14,7 @@ from typing import Optional, Sequence
 import numpy as np
 
 from . import events as ev
-from .synth import SAMPLE_RATE, SynthBackend, midi_to_freq
+from .synth import SAMPLE_RATE, SynthBackend
 
 try:
     import sounddevice as _sd

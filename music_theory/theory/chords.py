@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Optional, Sequence
 
-from .pitch import Note, interval_between, transpose
+from .pitch import Note, transpose
 from .scales import scale_notes
 
 # quality -> spelled interval specs (number, quality) measured from the root.

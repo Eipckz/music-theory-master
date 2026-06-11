@@ -6,7 +6,7 @@ import math
 import random
 
 from music_theory.adaptive import (
-    MasteryModel, PlacementTest, Scheduler, difficulty_for_rating, level_for_rating,
+    MasteryModel, PlacementTest, Scheduler,
 )
 from music_theory.curriculum import CURRICULUM
 
