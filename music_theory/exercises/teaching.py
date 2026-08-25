@@ -58,6 +58,11 @@ _CONCEPTS: dict[str, str] = {
         "Translate the numeral to a scale degree (V = the 5th degree), build the "
         "triad on that degree using the key's notes, and let the numeral's case set "
         "the quality (uppercase major, lowercase minor).",
+    "part_writing_completion":
+        "Write four singable lines, not a stack of keyboard chords. Keep soprano and "
+        "alto, and alto and tenor, within an octave; preserve voice order; avoid "
+        "parallel perfect fifths, octaves, and unisons; and resolve leading tones and "
+        "chordal sevenths in their directed ways. Parallel fourths are profile-dependent.",
     "interval_recognition":
         "Tie each interval to a familiar tune: perfect 4th = 'Here Comes the Bride', "
         "perfect 5th = 'Twinkle Twinkle', major 3rd = bright/happy, minor 3rd = "
@@ -173,6 +178,7 @@ _HINTS: dict[str, str] = {
     "triad_quality": "Listen to the lower 3rd: major sounds bright, minor sounds dark.",
     "seventh_quality": "Identify the triad first, then the size of the 7th above the root.",
     "roman_numeral_analysis": "Find the chord's root, then its scale degree in the key.",
+    "part_writing_completion": "Keep common tones, move the other upper voices by step, then check every voice pair for perfect parallels.",
     "interval_recognition": "Match it to a song you know (5th = Twinkle Twinkle).",
     "chord_quality_ear": "Focus on the 3rd: major = bright, minor = dark, dim = tense.",
     "cadence_ear": "Listen to the final two chords - does it sound finished?",

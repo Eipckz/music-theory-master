@@ -33,6 +33,8 @@ hiddenimports = [
     "music21", "music21.chord", "music21.roman", "music21.pitch",
     "music21.interval", "music21.key", "music21.scale", "music21.note",
     "music21.stream", "music21.duration", "music21.meter",
+    "music21.clef", "music21.metadata", "music21.expressions",
+    "music21.musicxml", "music21.musicxml.m21ToXml",
 ]
 
 a = Analysis(

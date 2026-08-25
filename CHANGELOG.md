@@ -6,6 +6,37 @@ and built automatically by the release workflow.
 
 ## [1.0.0] - Unreleased
 
+### Pre-Graduate bridge
+- Added a first-class Pre-Graduate level between Advanced and Graduate across
+  curriculum ordering, mastery labels, progress maps, and placement ladders.
+- Added teach-first paths for 0–11 pitch classes, the chromatic clock, interval
+  classes 1–6, normal/prime form, interval-class vectors, Forte tables, Tn/TnI,
+  twelve-tone rows/matrices, and neo-Riemannian P/L/R and Tonnetz concepts.
+- Added theory, aural, and piano generators for pc conversion/rotation,
+  interval-class reasoning and hearing, collection cardinality, P/L/R hearing,
+  set realization, ordered row segments, and parsimonious keyboard transforms.
+- Added a Post-tonal Reference workbench with a clickable clock, live set
+  analyzer, Tn/TnI, audio/keyboard feedback, 12×12 row matrix, and P/L/R path
+  player, plus a matching Pre-Graduate tab in the Piano workspace.
+
+### Four-Part Writing Lab
+- Added a dedicated offline Part Writing sidebar screen with Create Practice,
+  Solve, and Check and Explain workflows over a shared model-backed grid.
+- Added an exact deterministic SATB solver, independent final validator,
+  structured no-solution diagnostics, targeted auto-correction, cancellable Qt
+  worker, top-K navigation, reproducible practice generation, and JSON storage.
+- Added named profile-driven rules for chord/inversion/doubling correctness,
+  all-pair perfect intervals, tendency tones, melodic writing, cadences,
+  cadential six-four, Neapolitan, and augmented-sixth resolution.
+- Added Common Practice, Classroom Strict, Species Counterpoint, and locally
+  persisted custom profiles with editable severities, weights, and ranges.
+- Added SATB-aware chorale, piano, and open-score rendering with four preserved
+  voice identities, key/meter/barline/label context, locks, violations, ghost
+  answers, and treble/bass/alto/tenor clefs.
+- Added full/voice/chord/transition/comparison playback and MusicXML export.
+- Added the Advanced `harmony.part_writing` curriculum skill and an offline
+  Fall 2026 guide for MUS 2710, MUS 2730, and MUS 2750.
+
 ### Staff & notation
 - Accidentals are placed from real font metrics: smaller dedicated font, right
   edge a fixed gap left of the notehead, vertically centered on the note's

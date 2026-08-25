@@ -34,7 +34,7 @@ EVENTS = ("correct_streak", "lesson_complete", "level_up",
 
 # LEVEL_ORDER from curriculum.model, repeated here to avoid an import cycle;
 # test_feedback_messages cross-checks the two stay identical.
-LEVELS = ("Beginner", "Early", "Intermediate", "Advanced", "Graduate")
+LEVELS = ("Beginner", "Early", "Intermediate", "Advanced", "Pre-Graduate", "Graduate")
 
 
 class _SafeDict(dict):
@@ -1093,3 +1093,14 @@ MESSAGES[("piano", "Graduate", "daily_goal")] = [
     "Done for today. Continuo hands stay alive on daily contact, and contact was made.",
     "Goal hit. A daily habit at this level is what separates active mastery from a former skill.",
 ]
+
+# Pre-Graduate is an explicit bridge, so it receives the concept-rich upper-
+# level banks rather than the generic fallback.  Keep separate list objects so
+# no-repeat history remains independent at the two levels.
+for _domain in DOMAINS:
+    for _event in EVENTS:
+        _graduate = MESSAGES[(_domain, "Graduate", _event)]
+        MESSAGES[(_domain, "Pre-Graduate", _event)] = [
+            line.replace("Graduate", "Pre-graduate").replace("graduate", "pre-graduate")
+            for line in _graduate
+        ]
