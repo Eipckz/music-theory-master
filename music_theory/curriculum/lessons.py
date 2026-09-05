@@ -442,6 +442,37 @@ LESSONS: dict[str, list[LessonPage]] = {
            "the most directional predominants in tonal music.",
            play=_chords([[44, 60, 66], [43, 59, 67]], tempo=66)),
     ],
+    "harmony.part_writing": [
+        _P("Four independent singers",
+           "SATB writing combines <b>soprano, alto, tenor, and bass</b>. Keep each "
+           "voice in range and in order. Soprano-alto and alto-tenor normally stay "
+           "within an octave; tenor-bass may be wider. Crossing changes voice order; "
+           "overlap moves a voice beyond an adjacent voice's previous position."),
+        _P("Build the chord, then choose the doubling",
+           "Include the intended chord members and inversion before optimizing motion. "
+           "Root-position triads usually double the root; six-four chords double the "
+           "bass/fifth; first-inversion diminished triads double their bass/third. "
+           "Never double an active leading tone or chordal seventh."),
+        _P("Motion and forbidden parallels",
+           "Retain common tones and prefer steps. Contrary and oblique motion preserve "
+           "independence. The same two voices may not move in similar motion through "
+           "consecutive perfect unisons, fifths, or octaves, including compounds. "
+           "Upper-voice parallel fourths are allowed by Common Practice but can be "
+           "forbidden by a stricter instructor profile.",
+           play=_chords([[48, 60, 64, 67], [50, 59, 62, 67], [43, 59, 62, 67],
+                         [48, 60, 64, 67]], tempo=72)),
+        _P("Directed tones and cadences",
+           "A functional leading tone normally rises to tonic, and a chordal seventh "
+           "normally falls by step. A perfect authentic cadence needs root-position "
+           "V-I with scale degree 1 in the soprano; imperfect authentic, half, deceptive, "
+           "and plagal cadences have different harmonic and outer-voice requirements."),
+        _P("Use the Lab as a teacher",
+           "Enter only what the assignment gives you and leave unknown cells blank. "
+           "Lock required notes, solve for ranked valid alternatives, or enter your own "
+           "answer and choose Check. Diagnostics name the exact slots and voices, explain "
+           "the rule, and suggest a local repair. A hard error invalidates the answer; "
+           "a soft penalty only changes its stylistic ranking."),
+    ],
     "form.analysis": [
         _P("Hearing in paragraphs",
            "<b>Form</b> is how phrases build sections and sections build pieces. "
@@ -460,7 +491,42 @@ LESSONS: dict[str, list[LessonPage]] = {
            "(both themes home). Track the keys, not just the tunes."),
     ],
 
-    # ================= Graduate =================
+    # ================= Pre-Graduate bridge =================
+    "posttonal.pitch_classes": [
+        _P("Two numbering systems",
+           "Tonal <b>scale degrees 1-7</b> depend on a key: C is 1 in C major, "
+           "but D is 1 in D major. Post-tonal <b>pitch classes 0-11</b> are fixed "
+           "chromatic addresses. Use scale degrees for function in a key and pitch "
+           "classes for interval patterns that do not require one."),
+        _P("The 0-11 map",
+           "C=0, C#/Db=1, D=2, D#/Eb=3, E=4, F=5, F#/Gb=6, G=7, "
+           "G#/Ab=8, A=9, A#/Bb=10, B=11. Tables often print <b>T</b> for 10 "
+           "and <b>E</b> for 11 so each pitch class occupies one character."),
+        _P("Octave and spelling",
+           "Pitch class ignores register and normally identifies enharmonic "
+           "spellings: C3, C4, and B# can all represent pc 0. That abstraction is "
+           "useful, but it does <i>not</i> replace tonal spelling when voice leading "
+           "or harmonic function depends on how a note is written."),
+        _P("The chromatic clock",
+           "A <b>pitch-class clock</b> places 0-11 around a circle in semitone "
+           "order. It is not the circle of fifths. Mark a collection such as "
+           "C major {0,4,7}; transposing to D major rotates the same shape two "
+           "positions to {2,6,9}."),
+    ],
+    "posttonal.interval_classes": [
+        _P("Shortest distance around the clock",
+           "An <b>interval class</b> is the shorter distance between two pitch "
+           "classes. Because opposite points are six semitones apart, interval "
+           "classes run only from 1 through 6."),
+        _P("Inversional pairs",
+           "IC1 = m2/M7; IC2 = M2/m7; IC3 = m3/M6; IC4 = M3/m6; "
+           "IC5 = P4/P5; IC6 = tritone. A perfect fifth spans seven semitones "
+           "upward but is IC5 because the opposite direction is five."),
+        _P("From pairs to a collection",
+           "Calculate the interval class of <i>every unordered pair</i> in a set. "
+           "Those tallies become the six entries of an interval-class vector, "
+           "an interval-content fingerprint rather than a chord-function label."),
+    ],
     "posttonal.normal_form": [
         _P("Pitch classes",
            "Post-tonal theory reduces notes to <b>pitch classes</b> 0-11 (C=0, "
@@ -528,6 +594,11 @@ LESSONS: dict[str, list[LessonPage]] = {
            "The 12×12 <b>matrix</b> shows all 48 forms at once: build the first "
            "column as the inversion of the first row, fill rows by transposition. "
            "P reads left→right, I top→bottom, R right→left, RI bottom→top."),
+        _P("Numbers become music",
+           "A row form supplies <b>pitch-class order</b>, not a finished melody. "
+           "After converting numbers back to notes, the composer still chooses "
+           "octaves, range, rhythm, meter, articulation, dynamics, texture, "
+           "repetition, phrasing, and orchestration."),
     ],
     "posttonal.neo_riemannian": [
         _P("Triads as a network",
@@ -542,7 +613,75 @@ LESSONS: dict[str, list[LessonPage]] = {
            "PLR moves explain chromatic progressions that roman numerals "
            "struggle with (C → Ab → E ...). Hexatonic and octatonic cycles arise "
            "from alternating two moves - the sound of late Romantic mystery."),
+        _P("Tonnetz and notation warning",
+           "A <b>Tonnetz</b> draws major/minor triads as neighbouring triangles, "
+           "making common-tone motion visible. Here P/L/R are chord transforms; "
+           "the P, I, R, and RI labels in a twelve-tone matrix belong to a "
+           "different system despite sharing letters."),
     ],
+    "aural.posttonal_intervals": [
+        _P("Hear the complement",
+           "Post-tonal interval hearing groups inversional partners together. A "
+           "minor 2nd and major 7th both sound maximally close in pitch-class "
+           "space and both belong to IC1; a perfect 4th and 5th both belong to IC5.",
+           play=_melody(60, 71, 60, 61, tempo=76)),
+        _P("A two-pass strategy",
+           "First estimate the directed semitone span. If it exceeds six, subtract "
+           "it from 12. Then name the interval class. Harmonic presentation is "
+           "harder, so sing or arpeggiate the two pitches mentally."),
+    ],
+    "aural.pc_collections": [
+        _P("Cardinality before identity",
+           "Before naming a set, hear how many <b>distinct pitch classes</b> it "
+           "contains. Register doublings do not add members. Arpeggiate the sound "
+           "mentally, count unique attacks, and notice semitone clusters."),
+        _P("Connect ear and vector",
+           "Dense IC1/IC2 content tends to sound clustered; IC3/IC4 suggests "
+           "third-rich sonorities; IC5 emphasizes fourths/fifths; IC6 emphasizes "
+           "tritones. The vector names content your ear can learn to recognize."),
+    ],
+    "aural.neo_riemannian": [
+        _P("Two notes stay, one note moves",
+           "Hear a P/L/R move by holding the two common tones in your inner ear. "
+           "P changes the third, R moves between relative major/minor, and L uses "
+           "a leading-tone exchange.",
+           play=_chords([[60, 64, 67], [60, 63, 67], [59, 63, 67]], tempo=66)),
+        _P("Function is a separate question",
+           "Do not force every smooth chromatic triad pair into one key. First "
+           "describe the common-tone transformation; then ask whether a convincing "
+           "tonal context also supports a Roman-numeral reading."),
+    ],
+    "piano.pc_collections": [
+        _P("Numbers under the fingers",
+           "Place 0 at any C, then count every key chromatically to 11 at B. A "
+           "pitch-class set accepts any octave, so begin with a compact voicing "
+           "and re-space it without changing membership."),
+        _P("See the clock on the keyboard",
+           "Transpose a collection by moving every key the same number of semitones. "
+           "The shape on a pitch-class clock rotates exactly, even when the physical "
+           "black/white-key fingering changes."),
+    ],
+    "piano.row_realization": [
+        _P("Order before fingering",
+           "A row segment is an ordered list, not a chord. Translate each pc to a "
+           "key, preserve the order, and choose octaves that make the line playable."),
+        _P("Compose beyond the row",
+           "Try the same segment in several registers and rhythms. If the pitch-class "
+           "order stays fixed, those changes are legitimate realizations rather "
+           "than changes to the row form."),
+    ],
+    "piano.neo_riemannian": [
+        _P("Parsimonious keyboard motion",
+           "Play the source triad, hold two common tones, and move only the remaining "
+           "voice: P changes the third; R and L connect relative or leading-tone "
+           "partners. Use inversions that make that one-note motion visible."),
+        _P("Build cycles slowly",
+           "Practice single P/L/R moves before chains such as PL, RP, RL, or PLR. "
+           "Name each resulting triad and listen for the common tones instead of "
+           "memorizing a geometric pattern alone."),
+    ],
+
+    # ================= Graduate =================
     "analysis.schenker": [
         _P("Hearing in layers",
            "<b>Schenkerian analysis</b> hears music in structural layers: an "
@@ -563,6 +702,48 @@ LESSONS: dict[str, list[LessonPage]] = {
            "tonic prolongation, the structural dominant, and the descent."),
     ],
 }
+
+LESSONS.update({
+    "tonal.modes": [
+        _P("A mode has a tonic", "Learn the sound and spelling around a tonal center. D Dorian uses D–E–F–G–A–B–C; D is home. Playing C-major notes from D is a starting construction, not a complete explanation of modal function.",
+           play=_melody(62, 64, 65, 67, 69, 71, 72, 74)),
+        _P("Compare parallel collections", "Against parallel major: Dorian has flat 3/7, Phrygian flat 2/3/6/7, Lydian sharp 4, Mixolydian flat 7, Aeolian flat 3/6/7, Locrian flat 2/3/5/6/7. Sing the characteristic degree against a tonic drone."),
+        _P("Modal versus tonal expectations", "A modal flat 7 is not a leading tone a semitone below tonic. Do not impose V7–I tendencies on every modal phrase. The Part Writing Lab currently uses major/minor tonal context; use these lessons and scale tools for modal study."),
+    ],
+    "tonal.tendencies": [
+        _P("Two different sevenths", "In C major, V7 is G–B–D–F. B is scale degree 7 but the THIRD of the chord. F is scale degree 4 but the SEVENTH of the chord. Keep scale degree and chord factor separate.",
+           play=_chord(55, 59, 62, 65), staff={"clef": "treble", "notes": "G4 B4 D5 F5"}),
+        _P("Resolve the voices", "In an ordinary V7–I resolution, B rises to C (leading tone → tonic) and F falls to E (chordal seventh → tonic third). In C minor the corresponding resolutions are B→C and F→Eb. Track each voice, not just the collection of destination notes.",
+           play=_chords([[55, 59, 62, 65], [48, 60, 60, 64]])),
+        _P("Completeness and exceptions", "A complete root-position V7 with strict tendencies may resolve to an incomplete tonic; an incomplete V7 may omit its fifth and double its root. Some courses permit an inner leading tone to fall to scale degree 5. Use the instructor's rule profile. A final V7 can also be a half-cadence ending rather than an unresolved error."),
+        _P("Lab checkpoint", "Enter V7–I, put B4 in soprano and F4 in alto in the V7 slot, and solve. Inspect C5 and E4 in those same voices. Then enter F#4 instead of E4 in the tonic slot and read the membership diagnostic."),
+    ],
+    "tonal.nonchord": [
+        _P("Harmony plus rhythmic context", "A note outside the chord is not automatically a mistake. Identify the underlying harmony, metrical position, approach, and departure before naming the event."),
+        _P("Passing and neighboring", "Over C major, C–D–E fills a third: D is passing. C–D–C decorates C: D is a neighbor. Both examples use unaccented stepwise dissonance; accented variants need their own context.", play=_melody(60, 62, 64, 60, 62, 60)),
+        _P("Suspensions and anticipations", "A suspension is prepared, held into an accented dissonance, then resolves down by step (such as F over a new C bass resolving to E). An anticipation arrives before the harmony to which it belongs. The lab solves chordal snapshots; it does not automatically classify tied or rhythmically accented non-chord tones."),
+    ],
+    "tonal.phrases": [
+        _P("Cadence before label", "Hear and mark phrase endings. A PAC has root-position V–I and tonic in soprano. A half cadence ends on V. A deceptive V–vi avoids the expected tonic; IV–I is plagal."),
+        _P("Period and sentence", "A period pairs an antecedent with a more conclusive consequent; parallel periods share opening material. A sentence commonly presents an idea and repetition, then fragmentation/continuation and a cadence. The familiar 2+2+4 pattern is a model, not a universal measure-count law."),
+        _P("Assignment checkpoint", "Mark the bass, soprano endpoint, and harmonic rhythm before filling inner voices. I–?–IV alone does not uniquely determine V: key, bass, melodic clues, style and phrase function may permit several answers."),
+    ],
+    "tonal.tonicization": [
+        _P("Read the slash", "V7/V means the dominant seventh of V. In C major it is D–F#–A–C, pointing to G. F# is a temporary leading tone. Resolve the secondary chord's tendencies relative to its target, not blindly to the home tonic.", play=_chords([[50, 57, 60, 66], [43, 55, 59, 67]])),
+        _P("Practice in stages", "Identify the target; spell its major dominant triad; add the minor seventh; identify the temporary leading tone; then write the resolution. Try V7/ii, V7/vi, and V7/IV in several major keys."),
+        _P("Sequences", "A sequence repeats a pattern at new pitch levels. Applied-dominant chains can keep moving rather than settling immediately. State the assignment's treatment of delayed or transferred tendency resolutions before enforcing a strict local rule."),
+    ],
+    "tonal.chromatic_predominants": [
+        _P("Mixture keeps the tonic", "In C major, iv (F–Ab–C) and bVI (Ab–C–Eb) borrow color from parallel C minor. Compare scale spelling before and after the change; an accidental alone does not establish a new key."),
+        _P("Neapolitan sixth", "In C, N6 is Db major in first inversion: F in bass with Db and Ab above. It usually acts as a predominant. Its characteristic lowered scale degree 2 calls for contextual voice-leading, often through cadential six-four."),
+        _P("Augmented sixths", "In C, Ab and F# expand outward to G. Italian adds C; French adds C and D; German adds C and Eb. German-to-V can create parallel fifths, which a cadential six-four can help avoid. Spell F#, not Gb, to communicate the rising tendency."),
+    ],
+    "tonal.modulation": [
+        _P("Require tonal evidence", "A secondary dominant briefly tonicizes a chord. A modulation establishes a new tonic through sustained context and cadential support. Analyze the phrase after the chromatic chord, not only the accidental."),
+        _P("Pivot in two keys", "C-major vi (A minor) can also be ii in G major. Label the pivot in both keys, then confirm G with its dominant and cadence. Direct and chromatic modulations may avoid a shared diatonic pivot."),
+        _P("Before post-tonal study", "Checkpoint: spell modes; resolve V7 in major/minor; complete partial SATB work; distinguish non-chord tones; explain applied chords, mixture, N6/+6; and support phrase/modulation readings with evidence. Then begin pitch classes, sets and neo-Riemannian transformations. Course numbering varies; this is a practice path, not an official Musicianship IV syllabus."),
+    ],
+})
 
 def lesson_for(skill_id: str) -> list[LessonPage]:
     """Pages for a skill (empty if the skill has no lesson)."""

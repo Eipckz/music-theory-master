@@ -27,6 +27,20 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed" }
 
 $exe = Join-Path $root "dist\MusicTheoryMaster.exe"
 if (Test-Path $exe) {
+    Write-Host "==> Testing the packaged application..." -ForegroundColor Cyan
+    $smokeReport = Join-Path $root "dist\self-test.json"
+    if (Test-Path -LiteralPath $smokeReport) { Remove-Item -LiteralPath $smokeReport }
+    $smoke = Start-Process -FilePath $exe -ArgumentList @("--self-test", "`"$smokeReport`"") -WindowStyle Hidden -PassThru
+    if (-not $smoke.WaitForExit(60000)) {
+        $smoke.Kill($true)
+        throw "packaged self-test timed out"
+    }
+    if ($smoke.ExitCode -ne 0 -or -not (Test-Path $smokeReport)) {
+        if (Test-Path $smokeReport) { Get-Content $smokeReport | Write-Host }
+        throw "packaged self-test failed; release must not be published"
+    }
+    $smokeResult = Get-Content $smokeReport -Raw | ConvertFrom-Json
+    if (-not $smokeResult.ok) { throw "packaged self-test reported failure" }
     $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
     # Publish a checksum next to the exe so recipients can verify their copy
     # wasn't corrupted or tampered with in transit (email / LMS distribution).

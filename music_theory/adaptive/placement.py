@@ -24,14 +24,16 @@ _DOMAIN_LADDER = {
     "theory": [
         "note_identification", "interval_identification", "key_signature_identification",
         "triad_quality", "seventh_quality", "chord_inversion", "roman_numeral_analysis",
-        "pcset_prime_form", "row_form_identification",
+        "pitch_class_conversion", "interval_class_identification", "pcset_prime_form",
+        "row_form_identification",
     ],
     "aural": [
         "interval_recognition", "chord_quality_ear", "scale_mode_ear",
         "melodic_dictation", "cadence_ear", "harmonic_dictation",
-        "multipart_dictation",
+        "multipart_dictation", "posttonal_interval_ear", "pcset_cardinality_ear",
     ],
-    "piano": ["play_note", "play_interval", "play_triad", "play_scale"],
+    "piano": ["play_note", "play_interval", "play_triad", "play_scale",
+              "play_pitch_class_set", "play_row_segment", "play_plr_transform"],
 }
 
 _CONFIRM_ITEMS = 2      # items presented at the estimated level after converging

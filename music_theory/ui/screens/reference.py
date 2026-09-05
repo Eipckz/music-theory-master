@@ -9,14 +9,21 @@ import math
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen
 from PyQt6.QtWidgets import (
-    QComboBox, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea,
-    QTabWidget, QVBoxLayout, QWidget,
+    QAbstractItemView, QComboBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
+    QVBoxLayout, QWidget,
 )
 
 from ...errors import guard
 from ...theory.chords import SEVENTH_QUALITIES, TRIAD_QUALITIES, seventh, triad
 from ...theory.pitch import Note, transpose
 from ...theory.scales import SCALE_TYPES, key_signature, scale_notes
+from ...theory.neoriemann import nr_transform, parse_triad, triad_name, triad_pcs
+from ...theory.settheory import (
+    PCSet, forte_name, interval_vector, normal_form, parse_pitch_classes,
+    pc_label, pc_name, prime_form,
+)
+from ...theory.twelvetone import matrix_labels, row_matrix
 from .. import theme
 from ..common import heading, subtle
 from ..widgets import PianoWidget, StaffWidget
@@ -36,12 +43,14 @@ _ROOTS = ["C", "C#", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
 GLOSSARY: list[tuple[str, str, dict | None]] = [
     ("Accidental", "A sharp, flat, or natural sign that raises or lowers a note by a half step, overriding the key signature for one measure.", None),
     ("Arpeggio", "The notes of a chord played one after another instead of together.", {"mode": "melody", "midis": [60, 64, 67, 72], "tempo": 140}),
+    ("Augmented-sixth chord", "A chromatic predominant containing lowered scale degree 6 and raised scale degree 4; those tones normally expand outward to scale degree 5.", {"mode": "harmonic", "chords": [[44, 48, 54], [43, 47, 50]], "tempo": 70}),
     ("Cadence", "A two-chord punctuation mark ending a phrase. Authentic (V to I) sounds final; half (ending on V) sounds open.", {"mode": "harmonic", "chords": [[55, 59, 62, 67], [48, 52, 55, 60]], "tempo": 80}),
     ("Chord", "Three or more notes sounding together, usually built by stacking thirds.", {"mode": "chord", "midis": [60, 64, 67]}),
     ("Chromatic", "Moving by half steps, or using notes outside the current key.", {"mode": "melody", "midis": [60, 61, 62, 63, 64], "tempo": 160}),
     ("Circle of fifths", "All twelve keys arranged so each step clockwise adds a sharp (counterclockwise adds a flat). Neighboring keys share most of their notes.", None),
     ("Clef", "The symbol fixing which lines mean which pitches. Treble (G) clef wraps around G4; bass (F) clef's dots straddle F3.", None),
     ("Diatonic", "Using only the seven notes of the current key, nothing borrowed.", None),
+    ("Doubling", "Giving one chord member to two SATB voices. The inversion, chord quality, and selected rule profile determine the preferred or required member.", None),
     ("Dominant", "The fifth scale degree, or the chord built on it (V). It leans hard toward the tonic.", {"mode": "harmonic", "chords": [[55, 59, 62], [48, 52, 55]], "tempo": 80}),
     ("Enharmonic", "Two names for the same sound, like F# and Gb. Spelling depends on the key's logic.", {"mode": "note", "midi": 66}),
     ("Figured bass", "Numbers under a bass note naming the intervals above it: 6 means first inversion, 6/4 second inversion.", None),
@@ -56,8 +65,21 @@ GLOSSARY: list[tuple[str, str, dict | None]] = [
     ("Melodic minor", "Minor with raised 6th and 7th going up (smoothing the path to the tonic), natural form coming down.", {"mode": "melody", "midis": [57, 59, 60, 62, 64, 66, 68, 69], "tempo": 130}),
     ("Mode", "A scale built from the major pattern but starting on a different degree: Dorian on 2, Mixolydian on 5, and so on.", {"mode": "melody", "midis": [62, 64, 65, 67, 69, 71, 72, 74], "tempo": 140}),
     ("Modulation", "Changing key mid-piece, usually through a chord both keys share.", None),
+    ("Neapolitan sixth", "A major triad on lowered scale degree 2, normally in first inversion with scale degree 4 doubled, moving toward dominant harmony.", {"mode": "harmonic", "chords": [[53, 56, 61], [55, 59, 62]], "tempo": 70}),
     ("Octave", "The interval between a note and the next note with the same name; double or half the frequency.", {"mode": "interval", "low": 60, "high": 72}),
     ("Pitch class", "A note name regardless of octave: every C on the piano belongs to pitch class C (0 in post-tonal numbering).", None),
+    ("Pitch-class clock", "The twelve pitch classes arranged in chromatic semitone order, 0 through 11. Unlike the circle of fifths, adjacent positions are one half step apart.", None),
+    ("Interval class", "The shortest distance between two pitch classes around the chromatic clock, numbered 1 through 6. Inversional partners share a class.", {"mode": "interval", "low": 60, "high": 67, "harmonic": True}),
+    ("Interval-class vector", "A six-entry tally of every IC1, IC2, IC3, IC4, IC5, and IC6 pair inside a pitch-class collection.", None),
+    ("Normal form", "The most compact cyclic ordering of a pitch-class set, preserving its actual transposition.", None),
+    ("Prime form", "A canonical set-class representative beginning at 0, chosen by comparing a set's normal form with its inversion.", None),
+    ("Forte number", "A catalog label written cardinality-ordinal, such as 3-11 for the major/minor triad set class.", None),
+    ("Twelve-tone matrix", "A 12 by 12 table organizing a row's prime, inversion, retrograde, and retrograde-inversion forms.", None),
+    ("Neo-Riemannian transformation", "A P, L, or R move between major/minor triads that holds two common tones and moves one pitch.", {"mode": "harmonic", "chords": [[60, 64, 67], [60, 63, 67]], "tempo": 68}),
+    ("Tonnetz", "A geometric pitch network in which major and minor triads form neighbouring triangles and parsimonious voice leading becomes visible.", None),
+    ("Parallel fifths", "The same two voices forming perfect fifths in consecutive chords while moving in the same direction; a standard SATB hard error.", {"mode": "harmonic", "chords": [[48, 55], [50, 57]], "tempo": 70}),
+    ("Parallel octaves", "The same two voices moving in the same direction through consecutive octave-equivalent intervals, including unison-octave exchanges when a profile counts them.", {"mode": "harmonic", "chords": [[48, 60], [50, 62]], "tempo": 70}),
+    ("Part writing", "Writing independent soprano, alto, tenor, and bass lines that realize a harmony. Validity depends on the selected voice-leading rule profile, not one universal textbook policy.", None),
     ("Relative minor", "The minor key sharing a major key's signature, rooted a minor 3rd below it (C major and A minor).", {"mode": "melody", "midis": [57, 59, 60, 62, 64, 65, 67, 69], "tempo": 140}),
     ("Resolution", "The release of tension: a dissonance or active tone moving to a stable one.", {"mode": "harmonic", "chords": [[55, 59, 62, 65], [48, 52, 55, 60]], "tempo": 70}),
     ("Roman numerals", "Chord labels by scale degree: uppercase for major (I, IV, V), lowercase for minor (ii, vi), degree sign for diminished.", None),
@@ -65,6 +87,7 @@ GLOSSARY: list[tuple[str, str, dict | None]] = [
     ("Semitone", "Another name for the half step.", {"mode": "melody", "midis": [60, 61], "tempo": 120}),
     ("Seventh chord", "A triad plus the interval of a 7th above the root: four notes, more color and tension.", {"mode": "chord", "midis": [60, 64, 67, 70]}),
     ("Solfege", "Singing syllables for scale degrees: do re mi fa sol la ti. Movable-do follows the key.", None),
+    ("SATB", "The four named chorale voices: soprano, alto, tenor, and bass. Voice identity remains fixed even when two parts share a pitch.", None),
     ("Staff", "The five lines and four spaces music is written on.", None),
     ("Subdominant", "The fourth scale degree or its chord (IV), a step away from home with a gentle lift.", {"mode": "harmonic", "chords": [[53, 57, 60], [48, 52, 55]], "tempo": 80}),
     ("Tonic", "Home base: the first scale degree, the note and chord everything resolves toward.", {"mode": "chord", "midis": [48, 52, 55, 60]}),
@@ -72,6 +95,7 @@ GLOSSARY: list[tuple[str, str, dict | None]] = [
     ("Triad", "The basic three-note chord: root, 3rd, 5th. Qualities: major, minor, diminished, augmented.", {"mode": "chord", "midis": [60, 64, 67]}),
     ("Tritone", "Three whole steps (augmented 4th / diminished 5th), the most restless interval in tonal music.", {"mode": "interval", "low": 60, "high": 66, "harmonic": True}),
     ("Whole step", "Two half steps, like C to D.", {"mode": "melody", "midis": [60, 62], "tempo": 120}),
+    ("Voice leading", "How each named part moves from one chord to the next. Good voice leading preserves independence, resolves directed tones, and favors singable motion.", None),
 ]
 
 
@@ -158,6 +182,85 @@ class CircleOfFifthsWidget(QWidget):
         self.update()
 
 
+class PitchClassClockWidget(QWidget):
+    """Clickable chromatic clock for selecting and rotating pc collections."""
+
+    pcsChanged = pyqtSignal(object)
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.pcs: set[int] = {0, 4, 7}
+        self.setMinimumSize(300, 300)
+        self.setAccessibleName("Pitch-class clock")
+        self._refresh_description()
+
+    def set_pcs(self, pcs) -> None:
+        self.pcs = {int(pc) % 12 for pc in pcs}
+        self._refresh_description()
+        self.update()
+
+    def _refresh_description(self) -> None:
+        labels = ", ".join(f"{pc_label(pc)} {pc_name(pc)}" for pc in sorted(self.pcs))
+        self.setAccessibleDescription("Selected pitch classes: " + (labels or "none"))
+
+    def paintEvent(self, _event) -> None:  # noqa: N802 - Qt override
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        size = min(self.width(), self.height())
+        cx, cy = self.width() / 2, self.height() / 2
+        radius = size * 0.36
+        dot = max(18.0, size * 0.062)
+
+        positions: dict[int, QPointF] = {}
+        for pc in range(12):
+            angle = math.radians(-90 + pc * 30)
+            positions[pc] = QPointF(cx + math.cos(angle) * radius,
+                                    cy + math.sin(angle) * radius)
+        selected = sorted(self.pcs)
+        if len(selected) > 1:
+            p.setPen(QPen(QColor(theme.ACCENT), 2.2))
+            for a, b in zip(selected, selected[1:] + selected[:1]):
+                p.drawLine(positions[a], positions[b])
+
+        font = QFont()
+        font.setPixelSize(max(10, int(size * 0.038)))
+        font.setBold(True)
+        p.setFont(font)
+        for pc, point in positions.items():
+            active = pc in self.pcs
+            p.setPen(QPen(QColor(theme.BORDER), 1.2))
+            p.setBrush(QColor(theme.ACCENT if active else theme.TOKENS["SURFACE_2"]))
+            p.drawEllipse(point, dot, dot)
+            p.setPen(QColor(theme.TEXT_DARK if active else theme.TOKENS["TEXT"]))
+            p.drawText(QRectF(point.x() - dot, point.y() - dot, dot * 2, dot * 2),
+                       Qt.AlignmentFlag.AlignCenter, pc_label(pc))
+            p.setPen(QColor(theme.TOKENS["TEXT_MUTED"]))
+            p.drawText(QRectF(point.x() - 26, point.y() + dot, 52, 18),
+                       Qt.AlignmentFlag.AlignCenter, pc_name(pc))
+
+        p.setPen(QColor(theme.TOKENS["TEXT"]))
+        center = "{" + " ".join(pc_label(pc) for pc in selected) + "}"
+        p.drawText(QRectF(cx - 80, cy - 28, 160, 56), Qt.AlignmentFlag.AlignCenter,
+                   center or "empty")
+        p.end()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        cx, cy = self.width() / 2, self.height() / 2
+        dx, dy = event.position().x() - cx, event.position().y() - cy
+        radius = min(self.width(), self.height()) * 0.36
+        if abs(math.hypot(dx, dy) - radius) > min(self.width(), self.height()) * 0.13:
+            return
+        angle = math.degrees(math.atan2(dy, dx))
+        pc = round((angle + 90) / 30) % 12
+        if pc in self.pcs:
+            self.pcs.remove(pc)
+        else:
+            self.pcs.add(pc)
+        self._refresh_description()
+        self.pcsChanged.emit(sorted(self.pcs))
+        self.update()
+
+
 class ReferenceScreen(QWidget):
     def __init__(self, ctx, parent=None) -> None:
         super().__init__(parent)
@@ -169,7 +272,9 @@ class ReferenceScreen(QWidget):
         tabs = QTabWidget()
         tabs.addTab(self._build_circle_tab(), "Circle of fifths")
         tabs.addTab(self._build_explorer_tab(), "Explorer")
+        tabs.addTab(self._build_posttonal_tab(), "Post-tonal bridge")
         tabs.addTab(self._build_glossary_tab(), "Glossary")
+        self.tabs = tabs
         root.addWidget(tabs, 1)
 
     # -- circle of fifths ---------------------------------------------------
@@ -331,6 +436,212 @@ class ReferenceScreen(QWidget):
             self.ctx.engine.play_chord([n.midi for n in notes])
         self.ex_staff.set_notes(notes)
         self.ex_piano.flash([n.midi for n in notes], theme.ACCENT)
+
+    # -- pre-graduate post-tonal workbench -----------------------------------
+    def _build_posttonal_tab(self) -> QWidget:
+        page = QWidget()
+        outer = QHBoxLayout(page)
+        outer.setContentsMargins(6, 6, 6, 6)
+        outer.setSpacing(14)
+
+        left = QVBoxLayout()
+        intro = subtle(
+            "Bridge from tonal analysis to graduate work: use 0-11 pitch classes, "
+            "then connect the clock to sets, hearing, staff/keyboard realization, "
+            "rows, and P/L/R voice leading. Click clock positions to edit the set.")
+        intro.setWordWrap(True)
+        left.addWidget(intro)
+        self.pc_clock = PitchClassClockWidget()
+        self.pc_clock.pcsChanged.connect(self._post_clock_changed)
+        left.addWidget(self.pc_clock, 1)
+
+        set_row = QHBoxLayout()
+        self.pc_input = QLineEdit("0 4 7")
+        self.pc_input.setAccessibleName("Pitch-class collection")
+        self.pc_input.setPlaceholderText("0 4 7  or  C E G")
+        self.pc_input.returnPressed.connect(self._post_analyze)
+        analyze = QPushButton("Analyze set")
+        analyze.clicked.connect(self._post_analyze)
+        set_row.addWidget(QLabel("Set:"))
+        set_row.addWidget(self.pc_input, 1)
+        set_row.addWidget(analyze)
+        left.addLayout(set_row)
+
+        self.pc_result = QLabel("")
+        self.pc_result.setWordWrap(True)
+        self.pc_result.setTextFormat(Qt.TextFormat.RichText)
+        self.pc_result.setAccessibleName("Pitch-class set analysis")
+        left.addWidget(self.pc_result)
+
+        transform_row = QHBoxLayout()
+        self.pc_op = QComboBox()
+        self.pc_op.addItems(["Tn", "TnI"])
+        self.pc_n = QSpinBox()
+        self.pc_n.setRange(0, 11)
+        self.pc_n.setValue(2)
+        apply_transform = QPushButton("Apply transform")
+        apply_transform.clicked.connect(self._post_transform)
+        play_chord = QPushButton("▶ Chord")
+        play_chord.clicked.connect(lambda: self._post_play_collection(False))
+        play_arp = QPushButton("▶ Arpeggiate")
+        play_arp.clicked.connect(lambda: self._post_play_collection(True))
+        transform_row.addWidget(self.pc_op)
+        transform_row.addWidget(self.pc_n)
+        transform_row.addWidget(apply_transform)
+        transform_row.addWidget(play_chord)
+        transform_row.addWidget(play_arp)
+        left.addLayout(transform_row)
+
+        self.pc_piano = PianoWidget(48, 83)
+        self.pc_piano.setMinimumHeight(105)
+        left.addWidget(self.pc_piano)
+        outer.addLayout(left, 1)
+
+        right = QVBoxLayout()
+        row_title = QLabel("Twelve-tone row matrix")
+        row_title.setObjectName("H3")
+        right.addWidget(row_title)
+        right.addWidget(subtle("Enter a permutation of 0-11. P reads across; I down; R and RI reverse those directions."))
+        row_controls = QHBoxLayout()
+        self.row_input = QLineEdit("0 1 4 2 7 3 9 5 11 6 10 8")
+        self.row_input.setAccessibleName("Twelve-tone prime row")
+        build = QPushButton("Build matrix")
+        build.clicked.connect(self._post_build_matrix)
+        row_controls.addWidget(self.row_input, 1)
+        row_controls.addWidget(build)
+        right.addLayout(row_controls)
+        self.matrix_info = QLabel("")
+        self.matrix_info.setWordWrap(True)
+        self.matrix_info.setAccessibleName("Twelve-tone matrix status")
+        right.addWidget(self.matrix_info)
+        self.matrix_table = QTableWidget(12, 12)
+        self.matrix_table.setAccessibleName("Twelve-tone matrix")
+        self.matrix_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.matrix_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.matrix_table.horizontalHeader().setDefaultSectionSize(28)
+        self.matrix_table.verticalHeader().setDefaultSectionSize(24)
+        right.addWidget(self.matrix_table, 1)
+
+        plr_title = QLabel("Neo-Riemannian P/L/R")
+        plr_title.setObjectName("H3")
+        right.addWidget(plr_title)
+        plr_row = QHBoxLayout()
+        self.plr_start = QComboBox()
+        for root_name in ("C", "Cm", "Db", "Dbm", "D", "Dm", "E", "Em", "F", "Fm",
+                          "F#", "F#m", "G", "Gm", "Ab", "Abm", "A", "Am", "Bb", "Bbm", "B", "Bm"):
+            self.plr_start.addItem(root_name)
+        self.plr_ops = QLineEdit("PLR")
+        self.plr_ops.setMaximumWidth(80)
+        self.plr_ops.setAccessibleName("P L R transformation chain")
+        apply_plr = QPushButton("Transform")
+        apply_plr.clicked.connect(self._post_apply_plr)
+        play_plr = QPushButton("▶ Path")
+        play_plr.clicked.connect(self._post_play_plr)
+        plr_row.addWidget(self.plr_start)
+        plr_row.addWidget(self.plr_ops)
+        plr_row.addWidget(apply_plr)
+        plr_row.addWidget(play_plr)
+        right.addLayout(plr_row)
+        self.plr_result = QLabel("")
+        self.plr_result.setAccessibleName("P L R result")
+        right.addWidget(self.plr_result)
+        outer.addLayout(right, 1)
+
+        self._post_pcs = [0, 4, 7]
+        self._plr_path = []
+        self._post_analyze()
+        self._post_build_matrix()
+        self._post_apply_plr()
+        return page
+
+    def _post_clock_changed(self, pcs) -> None:
+        self.pc_input.setText(" ".join(pc_label(pc) for pc in pcs))
+        self._post_analyze()
+
+    @guard("Reference._post_analyze")
+    def _post_analyze(self) -> None:
+        try:
+            pcs = parse_pitch_classes(self.pc_input.text())
+            if not pcs:
+                raise ValueError("select or enter at least one pitch class")
+        except ValueError as exc:
+            self.pc_result.setText(f"<b>Input problem:</b> {exc}")
+            return
+        self._post_pcs = pcs
+        self.pc_clock.set_pcs(pcs)
+        self.pc_piano.highlight([60 + pc for pc in pcs], theme.ACCENT)
+        nf = normal_form(pcs)
+        pf = prime_form(pcs)
+        vector = interval_vector(pcs)
+        names = " · ".join(f"{pc_label(pc)}={pc_name(pc)}" for pc in sorted(set(pcs)))
+        self.pc_result.setText(
+            f"<b>Pitch classes:</b> {{{' '.join(pc_label(pc) for pc in sorted(set(pcs)))}}}  "
+            f"({names})<br><b>Normal form:</b> [{' '.join(pc_label(pc) for pc in nf)}]  "
+            f"<b>Prime form:</b> ({''.join(pc_label(pc) for pc in pf)})  "
+            f"<b>Forte:</b> {forte_name(tuple(pf))}<br>"
+            f"<b>IC vector:</b> &lt;{' '.join(str(x) for x in vector)}&gt;")
+
+    @guard("Reference._post_transform")
+    def _post_transform(self) -> None:
+        current = PCSet.of(self._post_pcs)
+        n = self.pc_n.value()
+        result = current.TnI(n) if self.pc_op.currentText() == "TnI" else current.Tn(n)
+        self.pc_input.setText(" ".join(pc_label(pc) for pc in result.pcs))
+        self._post_analyze()
+
+    @guard("Reference._post_play_collection")
+    def _post_play_collection(self, arpeggiate: bool = False) -> None:
+        midis = [60 + pc for pc in sorted(set(self._post_pcs))]
+        self.ctx.engine.play_chord(midis, arpeggiate=arpeggiate, tempo=90)
+        self.pc_piano.flash(midis, theme.ACCENT)
+
+    @guard("Reference._post_build_matrix")
+    def _post_build_matrix(self) -> None:
+        try:
+            row = parse_pitch_classes(self.row_input.text(), unique=False)
+            if sorted(row) != list(range(12)):
+                raise ValueError("a row must contain every pitch class 0-11 exactly once")
+            matrix = row_matrix(row)
+        except (ValueError, IndexError) as exc:
+            self.matrix_info.setText(f"Enter each pitch class exactly once: {exc}")
+            return
+        labels = matrix_labels(row)
+        self.matrix_table.setHorizontalHeaderLabels(labels["top"])
+        self.matrix_table.setVerticalHeaderLabels(labels["left"])
+        for r, values in enumerate(matrix):
+            for c, value in enumerate(values):
+                item = QTableWidgetItem(pc_label(value))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.matrix_table.setItem(r, c, item)
+        self.matrix_info.setText(
+            "Built 12×12 matrix. Row headers are P forms; column headers are I forms. "
+            "Read the same lines backward for R and RI.")
+
+    @guard("Reference._post_apply_plr")
+    def _post_apply_plr(self) -> None:
+        start = parse_triad(self.plr_start.currentText())
+        ops = self.plr_ops.text().upper().replace(" ", "")
+        if not ops or any(op not in "PLR" for op in ops):
+            self.plr_result.setText("Enter a chain containing only P, L, and R.")
+            self._plr_path = []
+            return
+        path = [start]
+        current = start
+        for op in ops:
+            current = nr_transform(current, op)
+            path.append(current)
+        self._plr_path = path
+        names = [triad_name(t) for t in path]
+        self.plr_result.setText(" → ".join(names) + "  (" + " · ".join(ops) + ")")
+
+    @guard("Reference._post_play_plr")
+    def _post_play_plr(self) -> None:
+        self._post_apply_plr()
+        if not self._plr_path:
+            return
+        items = [([60 + pc for pc in triad_pcs(t)], 2.0) for t in self._plr_path]
+        self.ctx.engine.play_sequence(items, tempo=68)
+        self.pc_piano.flash(items[-1][0], theme.ACCENT)
 
     # -- glossary -------------------------------------------------------------
     def _build_glossary_tab(self) -> QWidget:

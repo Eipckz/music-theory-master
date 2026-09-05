@@ -21,7 +21,8 @@ LEVELS = [
     (900, "Early"),
     (1150, "Intermediate"),
     (1400, "Advanced"),
-    (1650, "Graduate"),
+    (1650, "Pre-Graduate"),
+    (1850, "Graduate"),
 ]
 
 # Elo

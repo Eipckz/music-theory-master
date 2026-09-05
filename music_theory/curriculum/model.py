@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..adaptive.mastery import rating_for_difficulty
 
-LEVEL_ORDER = ["Beginner", "Early", "Intermediate", "Advanced", "Graduate"]
+LEVEL_ORDER = ["Beginner", "Early", "Intermediate", "Advanced", "Pre-Graduate", "Graduate"]
 _MASTERY_THRESHOLD = 0.72   # P(known) at which a skill counts as a satisfied prereq
 
 
@@ -176,6 +176,20 @@ _SKILLS: list[Skill] = [
        description="First through fifth species (guided lessons + self-check)."),
 
     # ---- Advanced ----
+    _S("tonal.modes", "Musicianship III: Modes in Context", "theory", "Advanced",
+       ("modal_degree",), ("scales.spell", "scales.identify"), (3.5, 6.5)),
+    _S("tonal.tendencies", "Musicianship III: V7 Tendency Tones", "theory", "Advanced",
+       ("dominant_tendency",), ("chords.seventh_quality", "harmony.roman_build"), (3.5, 6.5)),
+    _S("tonal.nonchord", "Musicianship III: Non-Chord Tones", "theory", "Advanced",
+       ("nonchord_tone",), ("tonal.tendencies",), (4.0, 7.0)),
+    _S("tonal.phrases", "Musicianship III: Cadences & Phrases", "theory", "Advanced",
+       ("tonal_phrase",), ("harmony.roman_numerals",), (4.0, 7.0)),
+    _S("tonal.tonicization", "Musicianship III–IV: Applied Dominants", "theory", "Advanced",
+       ("applied_target",), ("tonal.tendencies",), (4.5, 7.5)),
+    _S("tonal.chromatic_predominants", "Musicianship IV: Mixture & Chromatic Predominants", "theory", "Advanced",
+       ("chromatic_function",), ("tonal.tonicization", "tonal.modes"), (5.0, 8.0)),
+    _S("tonal.modulation", "Musicianship IV: Modulation & Tonal Evidence", "theory", "Advanced",
+       ("modulation_evidence",), ("tonal.tonicization", "tonal.phrases"), (5.0, 8.0)),
     _S("aural.harmonic_dictation", "Harmonic Dictation", "aural", "Advanced",
        ("progression_ear", "harmonic_dictation"),
        ("aural.cadences", "harmony.roman_numerals"), (3.0, 9.0)),
@@ -184,27 +198,67 @@ _SKILLS: list[Skill] = [
        description="Transcribe two, three, then four simultaneous voices - "
                    "the bridge from single-line hearing to full-texture hearing."),
     _S("harmony.chromatic", "Chromatic Harmony", "theory", "Advanced",
-       ("roman_numeral_analysis",), ("harmony.roman_build", "chords.seventh_quality"), (6.0, 9.5),
+       ("roman_numeral_analysis",), ("tonal.chromatic_predominants", "tonal.modulation"), (6.0, 9.5),
        description="Secondary function, mixture, Neapolitan, augmented sixths."),
+    _S("harmony.part_writing", "Four-Part Writing", "theory", "Advanced",
+       ("part_writing_completion",),
+       ("chords.inversions", "harmony.roman_numerals", "harmony.roman_build", "tonal.tendencies"),
+       (4.5, 10.0),
+       description="Profile-aware SATB realization, diagnosis, and correction."),
     _S("form.analysis", "Form & Phrase Structure", "theory", "Advanced",
        (), ("harmony.roman_numerals",), (5.0, 9.0), guided=True,
        description="Periods, sentences, binary/ternary, sonata (guided)."),
 
-    # ---- Graduate / PhD ----
-    _S("posttonal.normal_form", "PC Sets: Normal Form", "theory", "Graduate",
-       ("pcset_normal_form",), ("fund.intervals",), (4.0, 8.0)),
-    _S("posttonal.prime_form", "PC Sets: Prime Form", "theory", "Graduate",
+    # ---- Pre-Graduate bridge ----
+    # Representation comes before reduction/cataloguing.  The bridge also
+    # coordinates written theory with hearing and keyboard realization so a
+    # learner is never dropped straight from Roman numerals into matrices.
+    _S("posttonal.pitch_classes", "Pitch Classes & the Chromatic Clock", "theory", "Pre-Graduate",
+       ("pitch_class_conversion", "pitch_class_clock"),
+       ("fund.intervals", "harmony.chromatic"), (4.0, 7.5),
+       description="Translate notes to 0-11/T-E notation and reason modulo 12."),
+    _S("posttonal.interval_classes", "Interval Classes 1-6", "theory", "Pre-Graduate",
+       ("interval_class_identification",), ("posttonal.pitch_classes",), (4.5, 8.0),
+       description="Reduce directed chromatic spans to their shortest clock distance."),
+    _S("posttonal.normal_form", "PC Sets: Normal Form", "theory", "Pre-Graduate",
+       ("pcset_normal_form",), ("posttonal.pitch_classes",), (4.5, 8.0)),
+    _S("posttonal.prime_form", "PC Sets: Prime Form", "theory", "Pre-Graduate",
        ("pcset_prime_form",), ("posttonal.normal_form",), (5.0, 9.0)),
-    _S("posttonal.interval_vector", "Interval-Class Vector", "theory", "Graduate",
-       ("pcset_interval_vector",), ("posttonal.normal_form",), (5.0, 9.0)),
-    _S("posttonal.forte", "Forte Set Classes", "theory", "Graduate",
-       ("forte_identification",), ("posttonal.prime_form",), (6.0, 10.0)),
-    _S("posttonal.transforms", "Tn / TnI Operations", "theory", "Graduate",
+    _S("posttonal.interval_vector", "Interval-Class Vectors", "theory", "Pre-Graduate",
+       ("pcset_interval_vector",),
+       ("posttonal.normal_form", "posttonal.interval_classes"), (5.0, 9.0)),
+    _S("posttonal.forte", "Forte Set-Class Tables", "theory", "Pre-Graduate",
+       ("forte_identification",),
+       ("posttonal.prime_form", "posttonal.interval_vector"), (6.0, 10.0)),
+    _S("posttonal.transforms", "Tn / TnI Operations", "theory", "Pre-Graduate",
        ("set_transposition",), ("posttonal.normal_form",), (5.0, 9.5)),
-    _S("posttonal.twelve_tone", "Twelve-Tone Technique", "theory", "Graduate",
-       ("row_form_identification", "row_matrix_lookup"), ("posttonal.transforms",), (6.0, 10.0)),
-    _S("posttonal.neo_riemannian", "Neo-Riemannian Theory", "theory", "Graduate",
+    _S("posttonal.twelve_tone", "Twelve-Tone Rows & Matrices", "theory", "Pre-Graduate",
+       ("row_form_identification", "row_matrix_lookup"),
+       ("posttonal.transforms", "posttonal.interval_classes"), (6.0, 10.0)),
+    _S("posttonal.neo_riemannian", "Neo-Riemannian P/L/R", "theory", "Pre-Graduate",
        ("neo_riemannian",), ("harmony.chromatic",), (6.0, 10.0)),
+
+    _S("aural.posttonal_intervals", "Hear Interval Classes", "aural", "Pre-Graduate",
+       ("posttonal_interval_ear",),
+       ("aural.intervals", "posttonal.interval_classes"), (4.5, 8.5)),
+    _S("aural.pc_collections", "Hear Pitch-Class Collections", "aural", "Pre-Graduate",
+       ("pcset_cardinality_ear",),
+       ("aural.posttonal_intervals", "posttonal.normal_form"), (5.0, 9.0)),
+    _S("aural.neo_riemannian", "Hear P/L/R Voice Leading", "aural", "Pre-Graduate",
+       ("plr_transformation_ear",),
+       ("aural.chord_quality", "posttonal.neo_riemannian"), (5.5, 9.5)),
+
+    _S("piano.pc_collections", "Realize Pitch-Class Sets", "piano", "Pre-Graduate",
+       ("play_pitch_class_set",),
+       ("piano.chords", "posttonal.pitch_classes"), (4.5, 8.5)),
+    _S("piano.row_realization", "Realize Row Segments", "piano", "Pre-Graduate",
+       ("play_row_segment",),
+       ("piano.pc_collections", "posttonal.twelve_tone"), (5.5, 9.5)),
+    _S("piano.neo_riemannian", "Play P/L/R Transformations", "piano", "Pre-Graduate",
+       ("play_plr_transform",),
+       ("piano.chords", "posttonal.neo_riemannian"), (5.5, 9.5)),
+
+    # ---- Graduate / PhD ----
     _S("analysis.schenker", "Schenkerian Analysis", "theory", "Graduate",
        (), ("form.analysis",), (7.0, 10.0), guided=True,
        description="Foreground/middleground reduction and the Ursatz (guided)."),

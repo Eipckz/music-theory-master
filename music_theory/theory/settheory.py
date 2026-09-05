@@ -5,7 +5,92 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+import re
 from typing import Iterable
+
+
+PC_NAMES_SHARP = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+PC_NAMES_FLAT = ("C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B")
+
+
+def pc_label(pc: int) -> str:
+    """Single-character pitch-class label (T=10, E=11)."""
+    value = int(pc) % 12
+    return "TE"[value - 10] if value >= 10 else str(value)
+
+
+def pc_name(pc: int, *, prefer_flats: bool = False) -> str:
+    """Human-readable chromatic pitch name for a pitch class."""
+    names = PC_NAMES_FLAT if prefer_flats else PC_NAMES_SHARP
+    return names[int(pc) % 12]
+
+
+def pc_from_token(token: str | int) -> int:
+    """Parse a numeric/T/E pitch class or an octave-free note name.
+
+    Post-tonal entry deliberately treats enharmonic spellings as equivalent;
+    scale-degree and tonal spelling remain separate concepts elsewhere.
+    """
+    if isinstance(token, int):
+        return token % 12
+    raw = str(token).strip().replace("♯", "#").replace("♭", "b")
+    upper = raw.upper()
+    if upper == "T":
+        return 10
+    if upper == "E" and len(raw) == 1:
+        # In a numeric row, E conventionally means eleven. Use an octave-free
+        # pitch name in a note-name context through an explicit accidental or
+        # the UI note/name toggle; the workbench labels both representations.
+        return 11
+    if re.fullmatch(r"(?:10|11|[0-9])", raw):
+        return int(raw) % 12
+    match = re.fullmatch(r"([A-Ga-g])([#b]{0,2})", raw)
+    if not match:
+        raise ValueError(f"invalid pitch-class token: {token!r}")
+    natural = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+    value = natural[match.group(1).upper()]
+    for accidental in match.group(2):
+        value += 1 if accidental == "#" else -1
+    return value % 12
+
+
+def parse_pitch_classes(text: str | Iterable[int | str], *, unique: bool = True) -> list[int]:
+    """Parse ``0..11``/``T E`` or note-name pitch classes.
+
+    Numeric and note-name input may be comma- or space-separated. Order is
+    retained; set-oriented callers use the default de-duplication while tone
+    rows pass ``unique=False``.
+    """
+    if isinstance(text, str):
+        cleaned = re.sub(r"[\[\]{}()<>;,|]", " ", text)
+        tokens = cleaned.split()
+    else:
+        tokens = list(text)
+    numeric = all(re.fullmatch(r"(?:10|11|[0-9]|[TEte])", str(token).strip())
+                  for token in tokens)
+    if numeric:
+        values = [pc_from_token(token) for token in tokens]
+    else:
+        natural = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+        values = []
+        for token in tokens:
+            raw = str(token).strip().replace("♯", "#").replace("♭", "b")
+            match = re.fullmatch(r"([A-Ga-g])([#b]{0,2})", raw)
+            if not match:
+                raise ValueError(f"invalid note-name pitch class: {token!r}")
+            value = natural[match.group(1).upper()]
+            for accidental in match.group(2):
+                value += 1 if accidental == "#" else -1
+            values.append(value % 12)
+    if not unique:
+        return values
+    return list(dict.fromkeys(values))
+
+
+def interval_class(a: int, b: int) -> int:
+    """Return the shortest chromatic distance, 0..6, between two pcs."""
+    distance = (int(b) - int(a)) % 12
+    return min(distance, 12 - distance)
 
 
 def _dedup_sorted(pcs: Iterable[int]) -> list[int]:
@@ -113,11 +198,7 @@ def forte_name(prime: tuple[int, ...]) -> str:
             return name
     except Exception:  # noqa: BLE001 - never fail an exercise on lookup
         pass
-    return "[" + "".join(_pc_label(p) for p in prime) + "]"
-
-
-def _pc_label(pc: int) -> str:
-    return "TE"[pc - 10] if pc >= 10 else str(pc)
+    return "[" + "".join(pc_label(p) for p in prime) + "]"
 
 
 @dataclass(frozen=True)

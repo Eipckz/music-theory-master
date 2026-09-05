@@ -1,5 +1,5 @@
-"""Graduate / PhD-level post-tonal exercise generators: pitch-class set theory,
-twelve-tone rows and matrices, and Neo-Riemannian transformations."""
+"""Pre-graduate post-tonal generators: pitch-class set theory, twelve-tone
+rows and matrices, and Neo-Riemannian transformations."""
 
 from __future__ import annotations
 

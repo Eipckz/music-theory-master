@@ -16,6 +16,7 @@ from .screens.about import AboutScreen
 from .screens.achievements import AchievementsScreen
 from .screens.dashboard import DashboardScreen
 from .screens.piano_workspace import PianoWorkspaceScreen
+from .screens.part_writing import PartWritingScreen
 from .screens.placement import PlacementScreen
 from .screens.practice import PracticeScreen
 from .screens.reference import ReferenceScreen
@@ -29,6 +30,7 @@ _NAV = [
     ("Home", "dashboard"),
     ("Learn", "session"),
     ("Practice", "practice"),
+    ("Part Writing", "part_writing"),
     ("Dictation", "dictation"),
     ("Piano", "piano"),
     ("Reference", "reference"),
@@ -60,6 +62,7 @@ class MainWindow(QMainWindow):
         self._add("session", self.session)
         self.practice = PracticeScreen(ctx)
         self._add("practice", self.practice)
+        self._add("part_writing", PartWritingScreen(ctx))
         self._add("piano", PianoWorkspaceScreen(ctx))
         self._add("reference", ReferenceScreen(ctx))
         self._add("stats", StatsScreen(ctx))

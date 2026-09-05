@@ -15,6 +15,15 @@ Design notes (hard-won):
 """
 
 from PyInstaller.utils.hooks import collect_data_files
+import os
+from pathlib import Path
+
+# Qt 6.10 uses Windows' ICU API. An unrelated ICU on a build host's PATH
+# (e.g. Poppler/Conda) exports version-suffixed symbols and breaks QtWidgets.
+# Pin dependency discovery to the OS directory before searching host tools.
+if os.name == "nt":
+    system32 = str(Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32")
+    os.environ["PATH"] = system32 + os.pathsep + os.environ.get("PATH", "")
 
 block_cipher = None
 
@@ -33,6 +42,8 @@ hiddenimports = [
     "music21", "music21.chord", "music21.roman", "music21.pitch",
     "music21.interval", "music21.key", "music21.scale", "music21.note",
     "music21.stream", "music21.duration", "music21.meter",
+    "music21.clef", "music21.metadata", "music21.expressions",
+    "music21.musicxml", "music21.musicxml.m21ToXml",
 ]
 
 a = Analysis(
