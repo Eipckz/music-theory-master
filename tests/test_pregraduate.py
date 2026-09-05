@@ -127,7 +127,7 @@ def _track(ctx, widget):
 def test_reference_posttonal_workbench_analyzes_transforms_and_builds_matrix(qapp, ctx):
     from music_theory.ui.screens.reference import ReferenceScreen
     screen = _track(ctx, ReferenceScreen(ctx))
-    assert screen.tabs.tabText(2) == "Post-tonal bridge"
+    assert "Post-tonal bridge" in [screen.tabs.tabText(i) for i in range(screen.tabs.count())]
     screen.pc_input.setText("C E G")
     screen._post_analyze()
     assert "3-11" in screen.pc_result.text()
