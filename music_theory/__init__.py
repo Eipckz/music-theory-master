@@ -1,6 +1,6 @@
 """Music Theory Master - an adaptive, offline trainer for music theory,
 aural skills, and piano, from absolute beginner to PhD level."""
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __app_name__ = "Music Theory Master"
 __app_id__ = "MusicTheoryMaster"

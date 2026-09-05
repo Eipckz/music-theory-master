@@ -13,6 +13,12 @@ Duolingo-style: adaptive placement → teach-then-drill lessons → spaced revie
 - Release: tag `vX.Y.Z` and push → `.github/workflows/release.yml` builds the exe + Inno Setup installer and attaches both (with .sha256) to a GitHub Release
 
 ## Architecture (the 4 layers)
+
+### v1.3 practice tools and assessment
+- `theory/practice_tools.py` holds transposition, reverse scale search, metronome events/tap tempo, fretboard and worksheet calculations; `ui/screens/practice_tools.py` exposes all five under Tools.
+- Placement's UI enables comprehensive breadth checks by default; the core API retains a short-mode default for compatibility. Results are provisional and retain per-item type/difficulty evidence. Never substitute an unrelated fallback or save an incomplete assessment.
+- `skills/expand-music-theory-master/SKILL.md` is the reusable development skill; `docs/expansion-audit.md` records the comparison and verification scope. README's full curriculum and generator inventory must match the live registry.
+
 1. **theory/** — pure music math (pitch/Note, scales, chords incl. roman numerals, set theory, twelve-tone, neo-Riemannian). music21 is a *lazy* import (~0.85s) used only for roman numerals/Forte names, with pure-python fallbacks — never import it at module top level.
 2. **exercises/** — generators registered via `@register(etype, domain, title)` in `registry.py`. Contract (enforced by parametrized tests in `test_generators.py`): a generator `(difficulty: float 0-10, rng) -> Exercise` must self-grade (`ex.grade(ex.answer) is True`) at every difficulty and never raise; `safe_generate` is the crash-proof wrapper. Teaching text per etype lives in `teaching.py` (shown on wrong answers).
 3. **adaptive/** — `placement.py` (2-up/1-down staircase + fast first-miss ramp + confirmation items + cap at twice-demonstrated difficulty; deliberately conservative — never re-tune it to be generous), `mastery.py` (Elo + BKT + FSRS-lite per skill), `scheduler.py` (picks due reviews / new skills / practice).

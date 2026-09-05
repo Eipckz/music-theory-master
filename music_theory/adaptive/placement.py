@@ -6,8 +6,9 @@ converges on the ~71%-correct point - a level the learner is genuinely secure
 at, not one they can reach by lucky multiple-choice guessing. The staircase is
 followed by a short confirmation phase at the estimated level, and the final
 estimate is capped at the hardest item actually answered correctly, so the
-test reports the learner's TRUE working level rather than an optimistic one.
-It still stops early when the learner keeps failing the easiest items."""
+test produces a conservative practice starting point. It is not a validated
+measurement of complete musicianship. Optional breadth checks record topic
+evidence and can lower the estimate when knowledge is uneven."""
 
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
-from ..exercises.registry import safe_generate
+from ..exercises.registry import generate, title_of
 from .mastery import level_for_rating, rating_for_difficulty
 
 # Representative exercise types per domain, ordered easy -> hard.
@@ -24,6 +25,7 @@ _DOMAIN_LADDER = {
     "theory": [
         "note_identification", "interval_identification", "key_signature_identification",
         "triad_quality", "seventh_quality", "chord_inversion", "roman_numeral_analysis",
+        "modal_degree", "dominant_tendency", "chromatic_function", "modulation_evidence",
         "pitch_class_conversion", "interval_class_identification", "pcset_prime_form",
         "row_form_identification",
     ],
@@ -38,6 +40,16 @@ _DOMAIN_LADDER = {
 
 _CONFIRM_ITEMS = 2      # items presented at the estimated level after converging
 _CONFIRM_PENALTY = 0.8  # estimate drop for each failed confirmation item
+
+# Deliberate breadth checks, in addition to adaptive difficulty sampling.
+_COVERAGE = {
+    "theory": [("key_signature_identification", 0), ("interval_construction", 0),
+               ("triad_spelling", 0), ("modal_degree", 4), ("dominant_tendency", 4),
+               ("nonchord_tone", 4), ("chromatic_function", 6), ("modulation_evidence", 6)],
+    "aural": [("rhythmic_dictation", 0), ("interval_recognition", 0),
+              ("melodic_dictation", 2), ("cadence_ear", 3)],
+    "piano": [("play_note", 0), ("play_interval", 0), ("play_triad", 2), ("play_scale", 3)],
+}
 
 
 @dataclass
@@ -56,12 +68,19 @@ class _DomainState:
     confirm_left: int = _CONFIRM_ITEMS
     done: bool = False
     level: str = ""
+    evidence: list = field(default_factory=list)
+    coverage_queue: list = field(default_factory=list)
 
 
 class PlacementTest:
     def __init__(self, domains=None, *, max_items: int = 10, min_items: int = 6,
-                 rng: Optional[random.Random] = None) -> None:
+                 rng: Optional[random.Random] = None, comprehensive: bool = False) -> None:
         self.domains = domains or ["theory", "aural", "piano"]
+        if any(d not in _DOMAIN_LADDER for d in self.domains) or len(set(self.domains)) != len(self.domains):
+            raise ValueError("Choose distinct theory, aural and/or piano domains.")
+        if not 1 <= min_items <= max_items <= 50:
+            raise ValueError("Placement item bounds must satisfy 1 <= minimum <= maximum <= 50.")
+        self.comprehensive = comprehensive
         self.max_items = max_items          # staircase items per domain
         self.min_items = min_items
         self.rng = rng or random.Random()
@@ -83,27 +102,47 @@ class PlacementTest:
     @property
     def progress(self) -> tuple[int, int]:
         done = sum(s.items for s in self.state.values())
-        return done, (self.max_items + _CONFIRM_ITEMS) * len(self.domains)
+        extra = sum(len(_COVERAGE[d]) for d in self.domains) if self.comprehensive else 0
+        return done, (self.max_items + _CONFIRM_ITEMS) * len(self.domains) + extra
 
     def next_item(self):
+        if self._current is not None:
+            return self._current[3]
         domain = self.current_domain
         if domain is None:
             return None
         st = self.state[domain]
-        etype = self._pick_etype(domain, st.theta)
-        ex = safe_generate(etype, st.theta, self.rng)
-        self._current = (domain, etype, st.theta, ex)
+        etype = st.coverage_queue[0] if st.phase == "coverage" else self._pick_etype(domain, st.theta)
+        # A fallback tonic question must never be credited as an advanced aural item.
+        # Retry the requested type and record the actual presented difficulty.
+        for retry in range(4):
+            diff = max(0., st.theta - .75 * retry)
+            try:
+                ex = generate(etype, diff, self.rng)
+                if ex.etype != etype or ex.domain != domain:
+                    raise ValueError("Placement generator returned an unrelated exercise")
+                break
+            except Exception:
+                if retry == 3:
+                    raise
+        self._current = (domain, etype, diff, ex)
         return ex
 
     def submit(self, correct: bool) -> None:
         if self._current is None:
             return
-        domain, _etype, diff, _ex = self._current
+        domain, etype, diff, _ex = self._current
         st = self.state[domain]
         st.items += 1
         st.history.append((diff, bool(correct)))
+        st.evidence.append({"type": etype, "title": title_of(etype), "difficulty": round(diff, 2),
+                            "correct": bool(correct), "phase": st.phase})
         self._current = None
-        if st.phase == "confirm":
+        if st.phase == "coverage":
+            st.coverage_queue.pop(0)
+            if not st.coverage_queue:
+                self._finalize(domain, st)
+        elif st.phase == "confirm":
             self._submit_confirm(domain, st, correct)
         else:
             self._submit_staircase(domain, st, correct)
@@ -146,7 +185,7 @@ class PlacementTest:
         st.theta = est
         if est <= 0.2:
             # Nothing meaningful to confirm at the floor - finish here.
-            self._finalize(domain, st)
+            self._to_coverage(domain, st)
             return
         st.phase = "confirm"
         st.confirm_left = _CONFIRM_ITEMS
@@ -158,7 +197,15 @@ class PlacementTest:
             st.theta = max(0.0, st.theta - _CONFIRM_PENALTY)
         st.confirm_left -= 1
         if st.confirm_left <= 0:
-            self._finalize(domain, st)
+            self._to_coverage(domain, st)
+
+    def _to_coverage(self, domain, st):
+        if self.comprehensive:
+            st.coverage_queue = [etype for etype, minimum in _COVERAGE[domain] if st.theta >= minimum]
+            if st.coverage_queue:
+                st.phase = "coverage"
+                return
+        self._finalize(domain, st)
 
     # -- estimation ------------------------------------------------------------
     @staticmethod
@@ -179,6 +226,14 @@ class PlacementTest:
         return max(0.0, min(est, cap))
 
     def _finalize(self, domain: str, st: _DomainState) -> None:
+        coverage = [e for e in st.evidence if e["phase"] == "coverage"]
+        if coverage:
+            misses = sum(not e["correct"] for e in coverage)
+            st.theta = max(0., st.theta - min(1.5, misses * .35))
+        # Confirmation and coverage can only lower the demonstrated cap.
+        correct = sorted((d for d, ok in st.history if ok), reverse=True)
+        cap = correct[1] if len(correct) >= 2 else min(correct[0], 1.) if correct else 0.
+        st.theta = min(st.theta, cap)
         st.level = level_for_rating(rating_for_difficulty(st.theta))
         st.phase = "done"
         st.done = True
@@ -194,17 +249,24 @@ class PlacementTest:
         return {
             d: {"theta": round(s.theta, 2),
                 "rating": round(rating_for_difficulty(s.theta)),
-                "level": s.level or level_for_rating(rating_for_difficulty(s.theta))}
+                "level": s.level or level_for_rating(rating_for_difficulty(s.theta)),
+                "complete": s.done, "items": s.items,
+                "topics": len({e["type"] for e in s.evidence}),
+                "evidence": list(s.evidence),
+                "review": sorted({e["title"] for e in s.evidence if not e["correct"]})}
             for d, s in self.state.items()
         }
 
     def save(self, db, apply_result: Optional[Callable[[str, float], None]] = None) -> dict:
+        if not self.finished:
+            raise ValueError("Complete the assessment before saving placement results.")
         res = self.results()
         for domain, info in res.items():
             st = self.state[domain]
             db.save_placement(domain, info["theta"],
                               ci=max(0.5, st.step), level=info["level"], n_items=st.items)
             db.kv_set(f"placement.theta.{domain}", info["theta"])
+            db.kv_set(f"placement.evidence.{domain}", info)
             if apply_result is not None:
                 apply_result(domain, info["theta"])
         db.kv_set("placement.completed_at", time.time())

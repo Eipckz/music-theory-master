@@ -5,7 +5,7 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QStackedWidget,
-    QVBoxLayout, QWidget,
+    QVBoxLayout, QWidget, QScrollArea,
 )
 
 from .. import __app_name__
@@ -19,6 +19,7 @@ from .screens.piano_workspace import PianoWorkspaceScreen
 from .screens.part_writing import PartWritingScreen
 from .screens.placement import PlacementScreen
 from .screens.practice import PracticeScreen
+from .screens.practice_tools import PracticeToolsScreen
 from .screens.reference import ReferenceScreen
 from .screens.session import SessionScreen
 from .screens.settings import SettingsScreen
@@ -34,6 +35,7 @@ _NAV = [
     ("Dictation", "dictation"),
     ("Piano", "piano"),
     ("Reference", "reference"),
+    ("Tools", "tools"),
     ("Progress", "stats"),
     ("Awards", "achievements"),
     ("Placement", "placement"),
@@ -65,6 +67,7 @@ class MainWindow(QMainWindow):
         self._add("part_writing", PartWritingScreen(ctx))
         self._add("piano", PianoWorkspaceScreen(ctx))
         self._add("reference", ReferenceScreen(ctx))
+        self._add("tools", PracticeToolsScreen(ctx))
         self._add("stats", StatsScreen(ctx))
         self._add("achievements", AchievementsScreen(ctx))
         self._add("placement", PlacementScreen(ctx))
@@ -111,11 +114,12 @@ class MainWindow(QMainWindow):
     def _build_sidebar(self) -> QWidget:
         bar = QWidget()
         bar.setObjectName("Sidebar")
-        bar.setFixedWidth(196)
+        bar.setMinimumWidth(176)
         lay = QVBoxLayout(bar)
         lay.setContentsMargins(10, 14, 10, 14)
         lay.setSpacing(4)
         brand = QLabel("\u266B  Music Theory\nMaster")
+        brand.setWordWrap(True)
         brand.setObjectName("Brand")
         lay.addWidget(brand)
         lay.addSpacing(8)
@@ -139,7 +143,14 @@ class MainWindow(QMainWindow):
             self.nav_group.addButton(btn)
             self._nav_buttons[name] = btn
         lay.addStretch(1)
-        return bar
+        scroll = QScrollArea()
+        scroll.setObjectName("SidebarScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setFixedWidth(196)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(bar)
+        return scroll
 
     @guard("MainWindow.go_to")
     def go_to(self, name: str) -> None:

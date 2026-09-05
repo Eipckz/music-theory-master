@@ -33,7 +33,7 @@ def run_self_test(report_path: str) -> int:
             apply_theme(app, ctx.settings)
             window = MainWindow(ctx)
             window.show()
-            for name in ("part_writing", "reference", "piano", "session"):
+            for name in ("part_writing", "reference", "piano", "session", "tools", "placement"):
                 window.go_to(name)
                 app.processEvents()
             result["checks"].append("Qt startup and main screens")
@@ -45,6 +45,22 @@ def run_self_test(report_path: str) -> int:
             note_tool.close()
             rhythm_tool.close()
             result["checks"].append("Note analysis and exact rhythm calculator")
+            tools_screen = window.screens["tools"]
+            for i in range(tools_screen.tabs.count()):
+                tools_screen.tabs.setCurrentIndex(i)
+                app.processEvents()
+            transpose_tool = tools_screen.tabs.widget(0)
+            scale_tool = tools_screen.tabs.widget(1)
+            worksheet_tool = tools_screen.tabs.widget(3)
+            fret_tool = tools_screen.tabs.widget(4)
+            if not (transpose_tool.result and scale_tool.matches and worksheet_tool.items and fret_tool.board):
+                raise RuntimeError("New practice tools did not produce startup examples")
+            from .theory.practice_tools import export_melody, metronome_events, worksheet_html
+            export_melody(Path(profile) / "transpose.musicxml", transpose_tool.result)
+            if len(metronome_events(120, "2+3", 3, 2)) != 30:
+                raise RuntimeError("Metronome event check failed")
+            (Path(profile) / "worksheet.html").write_text(worksheet_html(worksheet_tool.items), encoding="utf-8")
+            result["checks"].append("Five practice tools and worksheet/transposition exports")
             from .theory.part_writing.harmony import normalize_constraint
             normalize_constraint(HarmonyConstraint(chord_symbol="C9"), "C", "major")
             p = PartWritingProblem(slots=[HarmonySlot(HarmonyConstraint(chord_symbol="C9"))])

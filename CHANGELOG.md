@@ -4,6 +4,15 @@ All notable changes to Music Theory Master are documented here.
 Versioning follows [SemVer](https://semver.org); releases are tagged `vX.Y.Z`
 and built automatically by the release workflow.
 
+## [1.3.0] - 2026-09-05
+
+- Added five Tools workspaces: spelled transposition with instrument presets/MusicXML; reverse scale search with explicit missing/outside tones; metronome with accent groups, subdivisions and tap tempo; reproducible printable worksheets and separate answer keys; clickable custom-tuning/capo fretboard.
+- Expanded the initial assessment with recommended breadth checks, domain selection, sound check, explicit unknown answers, cancellation, provisional topic evidence and review recommendations. Correctly credit easier generation retries; reject incomplete saves and preserve earned progress.
+- Rebuilt the README around every workspace, all 51 curriculum skills and all 54 registered exercise types, practical examples, data formats, settings, accessibility and honest limitations.
+- Added a whole-app audit/primary-source comparison and a reusable `expand-music-theory-master` skill.
+- Added scrolling for short windows and printable white worksheet previews; clear stale results and stop metronome playback when settings/navigation change.
+- Extended real-executable self-tests to cover all five additions and their exports.
+
 ## [1.2.0] - 2026-09-05
 
 - Added Reference note analysis with spelling-aware directed intervals, frequencies, chord collection names, optional tonal interpretation and playback for up to 64 supplied pitches.

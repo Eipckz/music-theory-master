@@ -1,182 +1,102 @@
 <div align="center">
 
-# ♫ Music Theory Master — A Tool Created by Fable Five and ChatGPT 6 Astra
+# ♫ Music Theory Master
+### A tool created by Fable Five and ChatGPT 6 Astra
 
-**An offline music-theory trainer and customizable SATB assignment workbench, with a guided path through Musicianship III–IV before introductory post-tonal and graduate topics.**
+**Learn the concepts. Hear the relationships. Work through the assignment.**
 
 [![CI](https://github.com/Eipckz/music-theory-master/actions/workflows/ci.yml/badge.svg)](https://github.com/Eipckz/music-theory-master/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Eipckz/music-theory-master?label=download&color=3ec46d)](https://github.com/Eipckz/music-theory-master/releases/latest)
-[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Offline](https://img.shields.io/badge/network%20calls-zero-5b8def)](#-privacy--security)
+[![Release](https://img.shields.io/github/v/release/Eipckz/music-theory-master?label=Windows%20download&color=3ec46d)](https://github.com/Eipckz/music-theory-master/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-*Adaptive placement → teach-then-drill lessons → spaced review. It meets you where you are and never lets you coast.*
+An offline desktop workspace for written theory, listening, keyboard practice, SATB assignments and everyday music calculations. The path runs from fundamentals through Musicianship III–IV to introductory post-tonal work and guided advanced study.
+
+[Download](https://github.com/Eipckz/music-theory-master/releases/latest) · [Start here](#start-here) · [Every workspace](#every-workspace) · [Full curriculum](#full-curriculum) · [Build and contribute](#build-and-contribute)
 
 <img src="docs/media/screenshot-dashboard.png" alt="Music Theory Master dashboard" width="850">
 
 </div>
 
----
+## Start here
 
-## ⬇️ Download for Windows
-
-Grab the latest from the **[Releases page](https://github.com/Eipckz/music-theory-master/releases/latest)** — no Python, no setup scripts:
-
-| File | What it is |
+| Your starting point | Where to go |
 |---|---|
-| **`MusicTheoryMaster-Setup.exe`** | Installer with a Start-menu shortcut and uninstaller. **Recommended.** |
-| **`MusicTheoryMaster.exe`** | Portable single file. Run it from anywhere, installs nothing. |
+| New to theory | Skip placement and begin **Learn**. Read a short lesson, hear examples, then practice. |
+| Returning learner | Take **Placement** with breadth checks. Choose theory, aural and/or piano; results suggest a provisional starting point and review topics. |
+| Working on an assignment | Open **Part Writing** for constrained SATB; use **Reference** for note/rhythm analysis and **Tools** for transposition, scales and worksheets. |
+| Practicing an instrument | Use **Piano**, MIDI input, **Tools → Metronome**, or **Tools → Fretboard**. |
+| Preparing for advanced classes | Follow the tonal III–IV sequence before the **Pre-Graduate** bridge; guided topics are labeled separately from graded drills. |
 
-Both are fully offline (no accounts, no telemetry) and ship with `.sha256` checksums you can verify. Prefer source? See [Run from source](#-run-from-source).
+### Install for Windows
 
-## ✨ What it does
+Download one file from [Releases](https://github.com/Eipckz/music-theory-master/releases/latest):
 
-| | |
+| Download | Use |
 |---|---|
-| 🎯 **Adaptive placement** | A short staircase test across theory, aural, and piano pins down your true level — deliberately conservative, so you're never dropped into material you can't handle. Or skip it and start from the beginning. |
-| 📖 **Teach first, then drill** | Every skill opens with a mini-lesson (with playable musical examples and staff illustrations) before you're ever quizzed on it. |
-| 🧠 **Real mastery model** | Elo ratings + Bayesian knowledge tracing + FSRS-style spaced review per skill. Weak spots resurface; mastered skills get out of your way. |
-| 🎹 **Real musician inputs** | Answer on an on-screen piano (or your MIDI keyboard), notate melodies on a staff, tap rhythms, build chords in inversion — not just multiple choice. |
-| 👂 **Serious ear training** | Intervals, chord qualities, scales/modes, progression recognition, melodic & harmonic dictation — including multi-voice dictation with per-voice entry and playback-speed control. |
-| 🎼 **Assignment solver** | Add as many chord slots as needed, paste aligned assignment rows, and supply any mix of soprano/alto/tenor/bass clues. Use Roman numerals, figures, chord symbols, or custom note collections; compare validated completions, hear them, and export JSON/MusicXML. |
-| 🎒 **Musicianship III–IV** | Seven focused skills with lessons and graded drills: modal degrees, V7 tendencies, non-chord tones, cadences/phrases, applied dominants, mixture/chromatic predominants, and modulation. Prerequisites connect these to advanced and post-tonal study. |
-| 🎓 **Pre-Graduate bridge** | A deliberate step between advanced tonal study and graduate analysis: pitch-class clocks, sets, interval vectors, Forte tables, twelve-tone matrices, and P/L/R—taught and drilled in theory, aural, and piano. |
-| 📚 **Built-in reference** | Interactive circles of fifths and pitch classes, a staff/keyboard explorer, live set analyzer, 12×12 row matrix, P/L/R workbench, and playable glossary. |
-| 🔥 **Progress that motivates** | XP, daily goals, streaks, 28 achievements with a gallery, celebration moments, and hundreds of musician-written encouragements that never repeat. |
-| 🎨 **Make it yours** | Dark, light, high-contrast, and sepia themes; accent colors; UI scaling; staff size, notehead style, and note-name labels — all live, all remembered. |
-| 🔊 **Instant, realistic audio** | Starts on a built-in synth in milliseconds, hot-upgrades to a bundled FluidSynth SoundFont in the background. Ten instruments to choose from. |
+| `MusicTheoryMaster-Setup.exe` | Per-user installer with Start-menu shortcut and uninstaller. |
+| `MusicTheoryMaster.exe` | Portable app; no Python installation needed. Replace an older portable copy to update. |
+| Matching `.sha256` | Verify the corresponding download's checksum. |
 
-## 🆕 What's new in 1.2
+Runtime is offline: no account, telemetry or cloud service. Source tests also run on Linux; prebuilt downloads are Windows-only. Release builds test the actual executable before uploading it, including the Windows DLL startup fix introduced in v1.1.
 
-- **Reference → Analyze notes:** enter 1–64 freely spelled pitches, including extended chords or incomplete fragments. Inspect frequencies, directed adjacent intervals, the lowest supplied note and a possible Roman-numeral interpretation in your chosen major/minor key. Hear the supplied pitches and copy the report. Musical context can change the interpretation; this is not an automatic proof of harmonic function.
-- **Reference → Rhythm & meter:** check exact per-bar duration totals with notes, rests, one or two dots, and triplets. For example, `t(e) t(e) t(e) q h` fills 4/4; `e e e e e e` fills 6/8. The calculator explains simple versus compound pulse grouping and reports missing or excess duration without treating an intentional pickup as inherently wrong.
-- **Verified Windows startup:** release builds run the real packaged app through startup, its main screens, the solver, both calculators, MusicXML export and synthesis before publishing. This includes the v1.1 fix for conflicting ICU DLL discovery and no-console startup.
+## Every workspace
 
-### Added in 1.1
+| Navigation | Complete feature guide |
+|---|---|
+| **Home** | Daily learning goal, XP, streak, progress summary, suggested learning and review actions. |
+| **Learn** | Prerequisite-based skill tree, teach-then-drill lessons, playable examples and staff illustrations, hints and answer explanations, adaptive difficulty, due reviews, weak-skill review, lesson recap and per-skill results. |
+| **Practice** | Select theory/aural/piano, choose any registered exercise, set difficulty, generate another item or focus the weakest topic. |
+| **Dictation** | Shortcut into listening practice; melody, rhythm, harmony and multipart exercises, unlimited replay and pitch-preserving playback-speed adjustment where supported. |
+| **Part Writing** | SATB solver/checker/corrector, generated practice, assignment grid and paste, custom profiles, grand/open-score notation, playback, JSON and MusicXML; III–IV roadmap and Fall 2026 guide. |
+| **Piano** | Play the on-screen or MIDI keyboard, audition scales and triads/sevenths; realize pitch-class collections, ordered row segments and P/L/R transformations. |
+| **Reference** | Circle of fifths, staff/keyboard explorer, free note analysis, exact rhythm/meter calculator, post-tonal clock/set/matrix/P-L-R workbench and searchable playable glossary. |
+| **Tools** | Spelled transposition and instrument conversion, reverse scale finder, accented/subdivided metronome and tap tempo, printable worksheets/answer keys, custom-tuning fretboard. |
+| **Progress** | Every skill's level, unlock state, mastery estimate, attempts and guided status, plus overall accuracy and completion counts. |
+| **Awards** | Achievement gallery, earned milestones and dismissible celebrations; reduce motion is available. |
+| **Placement** | Selectable domains, adaptive staircase, confirmation, optional breadth checks, sound check, explicit unknown response, cancel without saving, evidence-based provisional results and safe retakes. |
+| **Settings** | Profile name; audio backend, SoundFont, instrument, output device, volume and tempo; MIDI device and keyboard note labels; theme, accent, scaling and staff appearance; progress reset with confirmation. |
+| **About** | Version, attribution, offline status and application information. |
 
-- **The previously unreleased lab and bridge now have their own release version.** The August 25 implementation remained in draft PR #3 and was absent from the June v1.0.0 downloads.
-- **Assignment-first entry** — paste multiple rows of clues, add/duplicate/reorder slots, and keep every supplied pitch immutable during solving. Blank chords can use diatonic triads and sevenths in every inversion, including at the beginning of a phrase; specify chromatic alternatives explicitly.
-- **Expanded chord entry** — suspended, added-tone, altered and extended symbols through bundled music21, plus root-first custom `notes:C E G Bb` collections. Four-voice extended reductions retain the bass, third, seventh when present, and highest extension; explicit required tones are never silently omitted.
-- **Musicianship III–IV preparation** — a visible roadmap and seven teach-then-drill skills before the existing post-tonal bridge. This is a practice sequence, not a substitute for an instructor's syllabus.
-- **Search controls and accuracy** — adjustable time and width, cancellation during candidate generation, honest bounded-search status, profile-aware cache invalidation, and rejection of stale results after edits.
+## Five practice tools
 
-- **Offline Four-Part Writing Lab** — deterministic profile-driven SATB solving, checking, targeted correction, generated practice, grand-staff/open-score notation, local audio, JSON save/open, and MusicXML export. Common Practice and Classroom Strict ship built in; custom rule severities, weights, and ranges stay local.
-- **Fall 2026 course companion** — an offline guide and milestone checklist for MUS 2710, MUS 2730, and MUS 2750, derived from the supplied syllabi and explicitly marked tentative wherever Canvas or the instructor remains authoritative.
-- **Pre-Graduate curriculum layer** — a new level between Advanced and Graduate. It begins with the difference between key-dependent scale degrees and fixed 0–11 pitch classes, then scaffolds the chromatic clock, interval classes, normal/prime form, interval vectors, Forte labels, Tn/TnI, twelve-tone rows/matrices, and neo-Riemannian P/L/R. Coordinated aural and keyboard skills keep the material musical rather than purely numerical.
+![New practice tools: fretboard explorer](docs/media/screenshot-tools-v1.3.png)
 
-- **Engraved staff rendering** — metrics-placed accidentals (no more flats colliding with noteheads), tilted noteheads with correct stem direction, chord stacking with accidental lanes, whole/half/quarter values, time signatures and barlines.
-- **Appearance system** — four WCAG-AA themes, accent colors, interface scale, and a full staff-appearance panel with live preview.
+### 1. Transposition studio
 
-<img src="docs/media/screenshot-themes.png" alt="Dark, light, and high-contrast themes side by side" width="850">
+Enter a melody such as `C4 E4 G4`, choose an interval such as `M2`, and select up/down. Results preserve diatonic spelling (`D4 F#4 A4`), can be auditioned and exported as MusicXML. Instrument presets convert written ↔ concert pitch for Bb trumpet/clarinet, A clarinet, F horn, Eb alto sax, Bb tenor sax and octave-transposing guitar. Press **Apply instrument preset** to use the conversion. Input supports 1–128 notes and MIDI 0–127; unrepresentable spellings/ranges are rejected. Export represents each supplied pitch as a quarter note, not inferred rhythm.
 
-- **Celebrations that mean something** — distinct moments for level-ups, skill mastery, and daily goals, with a no-repeat bank of 768 concept-grounded messages (and a reduce-motion toggle).
-- **New exercises** — note placement, key-signature building, chord-inversion construction, progression recognition by ear.
-- **Reference tab** — circle of fifths, explorer, glossary.
-- **One-click install** — CI-built releases with installer + portable exe.
+### 2. Reverse scale finder
 
-## 🎬 Tour
+Supply notes, optionally constrain the tonic, and allow zero, one or two outside pitch classes. Candidates list scale notes, missing members and outside tones and can be played. Sorting prioritizes fewer outside/missing notes. Major/Ionian and natural minor/Aeolian are combined; melodic minor means its ascending form. Pitch-class containment alone cannot establish a key or tonal center.
 
-### The app at a glance
-Home dashboard, practice, piano workspace, reference, progress, awards, and settings.
+### 3. Metronome and tap tempo
 
-![App tour](docs/media/tour.gif)
+Set 20–300 BPM, beat groups such as `4` or `2+3`, 1–4 subdivisions and 1–32 bars (up to three minutes per run). Downbeats, group starts, other beats and subdivisions have different click accents. **Stop**, changing settings or leaving the page stops the run. Tap tempo uses recent inter-tap intervals; a long pause restarts measurement. For compound 6/8, use two beats with three subdivisions at dotted-quarter BPM. For additive 5/8, use `2+3` at eighth-note BPM.
 
-### Learn: lesson → drill
-New skills teach the concept first — short pages with audio examples — then drop you straight into the drill.
+### 4. Printable custom worksheets
 
-![Lesson flow](docs/media/lesson.gif)
+Select multiple supported written topics, difficulty 0–10, 1–50 questions and a reproducible seed. Preview the sheet, then export questions and answer key separately as standalone HTML. Print or save as PDF from your browser. Topics cover interval construction, triad spelling, Roman-numeral construction and all seven III–IV reasoning families. Questions contain the needed written information; audio-only drills are excluded. Worksheets do not award XP or claim instructor verification.
 
-### The staff, properly engraved
-Clean accidental spacing out of the box, readable noteheads, and construction exercises where you build the answer in notation.
+### 5. Fretboard explorer
 
-![Staff rendering and construction](docs/media/staff.gif)
+Choose guitar, bass, high-G ukulele or drop-D guitar, or enter 1–12 custom open-string pitches. Set 1–24 frets and capo 0–12. The clickable table displays sounding notes, highlights supplied chord/scale pitch classes, and auditions individual positions. Fret numbers are relative to the capo; display order follows the entered strings. Labels use sharps and highlights recognize enharmonic equivalents. This does not automatically choose playable fingerings.
 
-### Drills that actually teach
-Numbered choices (press 1–9), instant feedback, and a mini-explanation whenever you miss — the right answer is always spelled out.
+## Reference and listening
 
-![Drill with feedback](docs/media/drill.gif)
+| Tool | What it supports |
+|---|---|
+| Circle of fifths | Click a major key; inspect its signature, relative minor, primary chords and hear examples. |
+| Explorer | Pick a root and inspect/play intervals, scales/modes, triads or seventh chords with staff and keyboard views. |
+| Analyze notes | Enter 1–64 spelled pitches; inspect MIDI/frequency (A4 = 440 Hz), directed adjacent intervals, lowest pitch, chord-collection name and possible major/minor Roman analysis. Play supplied pitches or copy the report. Missing notes and context can change the interpretation. |
+| Rhythm & meter | Exact duration totals per bar; whole through thirty-second notes, rests, one/two dots, triplets and fractional whole-note values. Separate bars with `|`; see short/overfilled bars and simple/compound beat explanations. A pickup may intentionally be short. Does not validate beaming, ties or accent. |
+| Post-tonal bridge | Clickable pitch-class clock; normal/prime form, interval vector and Forte class; Tn/TnI transforms; validated twelve-tone row and 12×12 matrix with P/I labels, reverse reading for R/RI; audible neo-Riemannian P/L/R chains and keyboard highlights. |
+| Glossary | Search definitions and play examples where supplied. |
 
-### Melodic dictation
-Listen (replay as much as you like, slow it down without changing pitch), enter what you heard on the piano, and get a staff-notation reveal of your line vs. the answer.
+Rhythm example: `t(e) t(e) t(e) q h` fills 4/4 exactly; `e e e e e e` fills 6/8. The duration calculator and performance metronome serve different tasks.
 
-![Melodic dictation](docs/media/dictation.gif)
+All supported scale collections: **major, natural minor, harmonic minor, melodic minor, ionian, dorian, phrygian, lydian, mixolydian, aeolian, locrian, major pentatonic, minor pentatonic, blues, whole tone, octatonic hw, octatonic wh, chromatic**.
 
-### Circle of fifths
-Click any key: signature, relative minor, primary chords — and hear it.
-
-![Circle of fifths](docs/media/fifths.gif)
-
-### Themes
-Switch the whole app live from Settings; staff and keyboard follow.
-
-![Theme switching](docs/media/themes.gif)
-
-### A level-up, celebrated
-Short, dismissible, and honest — it names what you just earned.
-
-![Level-up celebration](docs/media/celebration.gif)
-
-### Placement test
-Adaptive difficulty staircase with confirmation questions. During the test your answers are acknowledged but never revealed — no telegraphing, no time pressure.
-
-![Placement test](docs/media/placement.gif)
-
-## 🚀 Run from source
-
-```powershell
-git clone https://github.com/Eipckz/music-theory-master.git
-cd music-theory-master
-pip install -r requirements.txt
-python main.py
-```
-
-Optional (for realistic SoundFont audio instead of the built-in synth):
-
-```powershell
-python build\fetch_audio_assets.py   # one-time, hash-verified download
-```
-
-### Build the exe yourself
-
-```powershell
-pip install -r requirements-dev.txt
-./build.ps1
-```
-
-Produces a single self-contained `dist/MusicTheoryMaster.exe` (PyInstaller onefile) plus a `.sha256` checksum. Before reporting success, the build runs that executable's isolated self-test: Qt screens, bundled chord parsing/SATB solving, MusicXML export, and offline audio synthesis. Tagged releases build both the exe and the Inno Setup installer automatically in CI.
-
-## 🗺️ What's inside
-
-```
-music_theory/
-├── theory/      pure music math — pitch, scales, chords, roman numerals,
-│                SATB part-writing, set theory, twelve-tone, neo-Riemannian
-├── exercises/   60+ exercise generators, difficulty 0–10, self-grading
-├── adaptive/    placement staircase, Elo+BKT+FSRS mastery, scheduler
-├── curriculum/  skill tree with prerequisites + a mini-lesson for every skill
-├── audio/       instant numpy synth → background FluidSynth upgrade, MIDI in
-├── ui/          PyQt6 — themeable token-driven UI, engraved staff widget,
-│                exercise player, celebrations, reference tools
-└── storage/     SQLite in per-user appdata; your data never leaves your machine
-```
-
-The curriculum spans **theory**, **aural skills**, and **keyboard**, with placement seeding and prerequisites wiring them together. Its level sequence is Beginner → Early → Intermediate → Advanced (including the **Musicianship III–IV path**) → **Pre-Graduate** → Graduate. Existing learners retain their progress; new prerequisite chains guide subsequent study.
-
-### Musicianship III–IV path
-
-In **Learn**, work through Modes in Context, V7 Tendency Tones, Non-Chord Tones, Cadences & Phrases, Applied Dominants, Mixture & Chromatic Predominants, and Modulation & Tonal Evidence. Each has explanatory pages and graded drills. **Part Writing → Musicianship III–IV** provides a checkpoint roadmap; existing ear-training, dictation, and keyboard practice complement the written skills.
-
-For example, in C major, G7 contains G–B–D–F. **B is the chord's third and the scale's leading tone; it normally rises to C. F is the chord's seventh and normally falls to E.** In C minor, F falls to Eb. The lessons distinguish these tendencies and explain inner-voice exceptions, incomplete voicings, and the role of an instructor's conventions.
-
-### Pre-Graduate bridge
-
-Learn mode starts with the distinction that prevents most early confusion: **scale degrees 1–7 are key-relative**, while **pitch classes 0–11 are fixed chromatic addresses**. From there the path proceeds through the pitch-class clock, interval classes 1–6, normal and prime form, interval-class vectors, Forte set-class names, Tn/TnI, twelve-tone P/I/R/RI forms and matrices, then neo-Riemannian P/L/R and Tonnetz reasoning. The app explicitly distinguishes the `P`/`R` labels shared by the twelve-tone and neo-Riemannian systems.
-
-The same ideas appear in Aural practice (interval-class, collection-cardinality, and P/L/R common-tone listening) and Piano practice (realize a pc set in any octave, preserve an ordered row segment, and play parsimonious triad transformations). The **Reference → Post-tonal bridge** tab provides a clickable clock, set analysis with normal/prime/Forte/vector results, Tn/TnI transforms, a live 12×12 matrix, audio, keyboard highlights, and a P/L/R path player. The Piano screen has a matching Pre-Graduate workspace.
-
-These tools provide standard introductory post-tonal calculations and practice, not a claim that one analytical method explains every repertoire. Pitch-class analysis intentionally collapses octave and most enharmonic spelling; tonal spelling, compositional interpretation, segmentation, and the musical significance of a chosen set or row still require context and judgment.
-
-### Four-Part Writing Lab
+## SATB assignment workbench
 
 Open **Part Writing** in the sidebar. Blank harmony or voice cells are unknowns; a visible `LOCK` is immutable. The table accepts exact pitches (`F#4`), octave-free pitch classes (`Bb`), scale degrees (`scale degree 3` or `^3`), and chord factors (`root`, `third`, `fifth`, `seventh`). **Slot constraints…** adds exact bass, inversion, required doubling, allowed/forbidden tones or harmonies, and display clefs. Successful solutions are independently revalidated and contain zero hard violations under the selected profile.
 
@@ -200,37 +120,278 @@ You can instead use `Chords: C | Dm7 | G7 | C`, `Figures: ? | 6 | 7 | ?`, and a 
 
 See [theory sources and coverage](docs/theory-sources.md) for teaching references and the relationship to the Auralia/Musition workflow.
 
-## ♿ Accessibility
+The toolbar also supports creating/opening/saving problems, adding/duplicating/removing/reordering slots, undo/redo, lock toggling, solving/checking/correcting, practice generation, profile editing, cancellation, result selection and playback/export. Diagnostics explain the constraints; supplied locked clues are preserved. Grand staff and open score are display options, not additional generated voices.
 
-- Full keyboard play: number keys pick answers, `R` replays audio, `Backspace` deletes entries, `Z`/`X` shift the on-screen piano's octave, `Enter` submits/advances — with a visible focus ring everywhere.
-- Screen-reader support: accessible names/descriptions on controls, text alternatives for staff renderings (note names), and results carried on focus changes.
-- WCAG-AA contrast across **all four themes** (checked by automated tests), a dedicated high-contrast theme, and a reduce-motion setting; correct/wrong feedback uses icons + words + color, never color alone.
-- No time limits, unlimited audio replays, adjustable playback speed for dictation, UI scaling to 200%, and optional note-name labels on the staff and keyboard.
+## Placement and adaptive learning
 
-## 🔒 Privacy & security
+![Placement domain selection and breadth checks](docs/media/screenshot-placement-v1.3.png)
 
-- **Zero network calls at runtime** — enforced by an automated test that blocks sockets and proves the app still works. See [SECURITY.md](SECURITY.md).
-- No telemetry, no accounts. All progress lives in a local SQLite file under your user profile.
-- Build-time downloads (FluidSynth DLLs, SoundFont) are pinned to immutable releases and verified against hard-coded SHA-256 hashes.
-- No `eval`/`exec`/pickle anywhere; SQL is fully parameterized (also enforced by tests).
+The initial assessment estimates theory, listening and keyboard separately. The recommended mode includes topic breadth checks after its adaptive staircase and confirmation questions: written fundamentals, rhythm and listening skills, keyboard basics, and collegiate tonal topics when the working difficulty warrants them. With all domains selected it asks at most 58 questions and may finish earlier. A shorter mode omits breadth checks; unchecked domains are explicitly unassessed. There is no speed score or question timer. Use the sound check before listening questions and **I don't know yet** instead of guessing.
 
-## 🧪 Development
+Results show the number of questions and distinct exercise types, provisional level and topics missed. The app stores item-type/difficulty evidence locally. An easier retry is credited at its actual difficulty; an unrelated fallback cannot masquerade as an advanced item. Canceling does not save a partial assessment. A retake can seed a better starting point without deleting earned mastery.
+
+During learning, Elo-style ratings, Bayesian knowledge estimates and an FSRS-inspired review schedule adapt practice. Prerequisites and repeated successful work unlock skills; XP, daily goals, streaks and achievements track engagement. These are educational heuristics, not a standardized or psychometrically validated examination, and cannot certify someone's complete musicianship.
+
+## Full curriculum
+
+The sequence is **Beginner → Early → Intermediate → Advanced → Pre-Graduate → Graduate**. Advanced includes seven Musicianship III–IV skills: modes, dominant tendency tones, nonchord tones, cadences/phrases, applied dominants, mixture/chromatic predominants and modulation. The III–IV roadmap offers checkpoints; the Fall 2026 companion covers MUS 2710/2730/2750 with tentative instructor-dependent dates clearly labeled.
+
+For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**, while its **seventh F normally falls to E**. The lessons explain local-key context and classroom exceptions. Post-tonal study starts by distinguishing key-relative scale degrees from fixed pitch classes before introducing sets, rows and P/L/R. Guided topics offer lessons and self-check, not automatic grading of full compositions or reductions.
+
+<details>
+<summary>Beginner</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Note Names & the Staff | Theory | Note Identification, Place the Note |
+| Hearing Intervals | Aural | Interval Recognition (Ear) |
+| Melodic Dictation | Aural | Melodic Dictation |
+| Keyboard Geography | Piano | Play a Note |
+| Rhythmic Dictation | Aural | Rhythmic Dictation |
+
+</details>
+
+<details>
+<summary>Early</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Intervals (Written) | Theory | Interval Identification, Interval Construction |
+| Key Signatures | Theory | Key Signatures, Build Key Signatures |
+| Scale Spelling | Theory | Scale Spelling |
+| Scale Identification | Theory | Scale Identification |
+| Triad Quality | Theory | Triad Quality |
+| Triad Spelling | Theory | Triad Spelling |
+| Play Intervals | Piano | Play an Interval |
+| Play Scales | Piano | Play a Scale |
+| Chord Quality (Ear) | Aural | Chord Quality (Ear) |
+| Scales & Modes (Ear) | Aural | Scale / Mode (Ear) |
+
+</details>
+
+<details>
+<summary>Intermediate</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Seventh-Chord Quality | Theory | Seventh-Chord Quality |
+| Inversions & Figured Bass | Theory | Chord Inversions & Figured Bass, Build Chords in Inversion |
+| Roman-Numeral Analysis | Theory | Roman-Numeral Analysis |
+| Build From Roman Numerals | Theory | Build From Roman Numeral |
+| Play Chords | Piano | Play a Triad |
+| Cadence Identification | Aural | Cadence Identification (Ear) |
+| Error Detection | Aural | Error Detection |
+| Species Counterpoint | Theory | Guided self-study |
+
+</details>
+
+<details>
+<summary>Advanced</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Musicianship III: Modes in Context | Theory | Modes: characteristic scale degrees |
+| Musicianship III: V7 Tendency Tones | Theory | V7: third versus seventh resolution |
+| Musicianship III: Non-Chord Tones | Theory | Passing, neighbor, suspension, anticipation |
+| Musicianship III: Cadences & Phrases | Theory | Cadences and phrase structure |
+| Musicianship III–IV: Applied Dominants | Theory | Applied dominants and temporary leading tones |
+| Musicianship IV: Mixture & Chromatic Predominants | Theory | Mixture, Neapolitan, augmented sixths |
+| Musicianship IV: Modulation & Tonal Evidence | Theory | Tonicization versus modulation |
+| Harmonic Dictation | Aural | Progression Recognition (Ear), Harmonic Dictation |
+| Multi-Part Dictation | Aural | Multi-Part Dictation |
+| Chromatic Harmony | Theory | Roman-Numeral Analysis |
+| Four-Part Writing | Theory | Four-Part Writing |
+| Form & Phrase Structure | Theory | Guided self-study |
+
+</details>
+
+<details>
+<summary>Pre-Graduate</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Pitch Classes & the Chromatic Clock | Theory | Pitch Classes: Notes ↔ Numbers, Pitch-Class Clock |
+| Interval Classes 1-6 | Theory | Interval Classes 1–6 |
+| PC Sets: Normal Form | Theory | PC-Set: Normal Form |
+| PC Sets: Prime Form | Theory | PC-Set: Prime Form |
+| Interval-Class Vectors | Theory | PC-Set: Interval Vector |
+| Forte Set-Class Tables | Theory | PC-Set: Forte Name |
+| Tn / TnI Operations | Theory | Tn / TnI Transformation |
+| Twelve-Tone Rows & Matrices | Theory | 12-Tone: Identify Row Form, 12-Tone: Matrix Lookup |
+| Neo-Riemannian P/L/R | Theory | Neo-Riemannian Transformation |
+| Hear Interval Classes | Aural | Hear an Interval Class |
+| Hear Pitch-Class Collections | Aural | Hear Pitch-Set Cardinality |
+| Hear P/L/R Voice Leading | Aural | Hear P/L/R Voice Leading |
+| Realize Pitch-Class Sets | Piano | Play a Pitch-Class Set |
+| Realize Row Segments | Piano | Play a Row Segment |
+| Play P/L/R Transformations | Piano | Play a P/L/R Transformation |
+
+</details>
+
+<details>
+<summary>Graduate</summary>
+
+| Skill | Domain | Practice |
+|---|---|---|
+| Schenkerian Analysis | Theory | Guided self-study |
+
+</details>
+
+
+### Every selectable exercise
+
+<details>
+<summary>Theory exercise catalog</summary>
+
+| Exercise | Registry ID |
+|---|---|
+| Applied dominants and temporary leading tones | `applied_target` |
+| Chord Inversions & Figured Bass | `chord_inversion` |
+| Mixture, Neapolitan, augmented sixths | `chromatic_function` |
+| V7: third versus seventh resolution | `dominant_tendency` |
+| PC-Set: Forte Name | `forte_identification` |
+| Interval Classes 1–6 | `interval_class_identification` |
+| Interval Construction | `interval_construction` |
+| Interval Identification | `interval_identification` |
+| Build Chords in Inversion | `inversion_build` |
+| Build Key Signatures | `key_signature_build` |
+| Key Signatures | `key_signature_identification` |
+| Modes: characteristic scale degrees | `modal_degree` |
+| Tonicization versus modulation | `modulation_evidence` |
+| Neo-Riemannian Transformation | `neo_riemannian` |
+| Passing, neighbor, suspension, anticipation | `nonchord_tone` |
+| Note Identification | `note_identification` |
+| Place the Note | `note_placement` |
+| Four-Part Writing | `part_writing_completion` |
+| PC-Set: Interval Vector | `pcset_interval_vector` |
+| PC-Set: Normal Form | `pcset_normal_form` |
+| PC-Set: Prime Form | `pcset_prime_form` |
+| Pitch-Class Clock | `pitch_class_clock` |
+| Pitch Classes: Notes ↔ Numbers | `pitch_class_conversion` |
+| Roman-Numeral Analysis | `roman_numeral_analysis` |
+| Build From Roman Numeral | `roman_numeral_build` |
+| 12-Tone: Identify Row Form | `row_form_identification` |
+| 12-Tone: Matrix Lookup | `row_matrix_lookup` |
+| Scale Identification | `scale_identification` |
+| Scale Spelling | `scale_spelling` |
+| Tn / TnI Transformation | `set_transposition` |
+| Seventh-Chord Quality | `seventh_quality` |
+| Cadences and phrase structure | `tonal_phrase` |
+| Triad Quality | `triad_quality` |
+| Triad Spelling | `triad_spelling` |
+
+</details>
+
+<details>
+<summary>Aural exercise catalog</summary>
+
+| Exercise | Registry ID |
+|---|---|
+| Cadence Identification (Ear) | `cadence_ear` |
+| Chord Quality (Ear) | `chord_quality_ear` |
+| Error Detection | `error_detection` |
+| Harmonic Dictation | `harmonic_dictation` |
+| Interval Recognition (Ear) | `interval_recognition` |
+| Melodic Dictation | `melodic_dictation` |
+| Multi-Part Dictation | `multipart_dictation` |
+| Hear Pitch-Set Cardinality | `pcset_cardinality_ear` |
+| Hear P/L/R Voice Leading | `plr_transformation_ear` |
+| Hear an Interval Class | `posttonal_interval_ear` |
+| Progression Recognition (Ear) | `progression_ear` |
+| Rhythmic Dictation | `rhythmic_dictation` |
+| Scale / Mode (Ear) | `scale_mode_ear` |
+
+</details>
+
+<details>
+<summary>Piano exercise catalog</summary>
+
+| Exercise | Registry ID |
+|---|---|
+| Play an Interval | `play_interval` |
+| Play a Note | `play_note` |
+| Play a Pitch-Class Set | `play_pitch_class_set` |
+| Play a P/L/R Transformation | `play_plr_transform` |
+| Play a Row Segment | `play_row_segment` |
+| Play a Scale | `play_scale` |
+| Play a Triad | `play_triad` |
+
+</details>
+
+
+## Input, appearance and accessibility
+
+- Answer with choices, text, staff notes, on-screen/MIDI piano, ordered sequences, rhythmic values or separate voice lines. Correct answers include explanations; relevant exercises provide hints, audio and staff reveals.
+- Keyboard shortcuts include numbered choices, `R` replay, `Backspace` delete, `Enter` submit/advance and `Z`/`X` piano octave shifts. Staff construction supports mouse and keyboard entry. Accessible names and note descriptions support assistive technology; usability varies with the platform's screen reader.
+- Dark, light, high-contrast and sepia themes; selectable accents, UI scaling, reduce motion, keyboard note names, staff size, notehead style, note labels, paper color and line/space highlighting.
+- Engraving includes spaced accidentals, chord stacks, stem directions, rhythmic note values, key/time signatures and barlines. Theme contrast is covered by automated tests; printable worksheets deliberately use a white page.
+- Instant built-in synthesis, optional bundled FluidSynth/SoundFont, ten instrument choices, adjustable output device/volume/tempo, and MIDI input. If the preferred audio backend fails, the synth fallback remains available.
+
+<details>
+<summary>Visual tour and retained demo gallery</summary>
+
+Earlier-version recordings illustrate the established workflows; the feature guide above describes current behavior.
+
+![App tour](docs/media/tour.gif)
+![Lesson flow](docs/media/lesson.gif)
+![Staff construction](docs/media/staff.gif)
+![Drill feedback](docs/media/drill.gif)
+![Dictation](docs/media/dictation.gif)
+![Circle of fifths](docs/media/fifths.gif)
+![Themes](docs/media/themes.gif)
+![Celebration](docs/media/celebration.gif)
+![Earlier placement flow](docs/media/placement.gif)
+![Theme comparison](docs/media/screenshot-themes.png)
+
+</details>
+
+## Files, privacy and boundaries
+
+| Data | Location or format |
+|---|---|
+| Learning progress | Per-user local SQLite database: attempts, mastery, placement, XP, achievements and metadata. |
+| Preferences | Local Qt settings under the application identity. |
+| SATB assignments | User-saved JSON; solved scores export to MusicXML. |
+| Transposed melody | User-selected MusicXML file; quarter-note durations. |
+| Worksheets | Separate local HTML question and answer files; no external fonts or scripts. |
+| Reports | Copy note/rhythm analysis to the clipboard. |
+
+Reset in Settings deletes learning progress after confirmation; it is not a backup tool. Runtime makes no network calls and requires no account. Build-time audio downloads are version-pinned and hash-checked. SQL uses parameters; imported assignments are validated. See [SECURITY.md](SECURITY.md).
+
+The app is not a general score editor, universal harmony oracle, microphone singing assessor, teacher cloud service or replacement for your instructor. SATB is four-part and has explicit search limits; note collections do not prove tonal function; guided advanced topics do not imply doctoral-level automated assessment. The [audit and competitor comparison](docs/expansion-audit.md) records remaining gaps and the five additions' rationale.
+
+## Build and contribute
+
+Python 3.12+; Windows release builds use Python 3.13.
 
 ```powershell
-pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest tests -q     # ~2.5 min; GUI tests run headless
+git clone https://github.com/Eipckz/music-theory-master.git
+cd music-theory-master
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python main.py
 ```
 
-- 300+ tests cover the theory engine, every exercise generator contract (self-grades correctly at every difficulty, never crashes), SATB rules/solver/generator/export/GUI behavior, adaptive models, persistence, theming/contrast, GUI flows, and the no-network guarantee. CI runs them on Windows and Linux.
-- New exercise generators are auto-covered: register them and the parametrized suite picks them up. See [CONTRIBUTING.md](CONTRIBUTING.md).
-- Demo media in this README is generated straight from the real app: `python build\make_demo_media.py`.
+```powershell
+python -m pytest tests -q
+ruff check --select E9,F63,F7,F82,F401,F811 music_theory tests build main.py
+python build/fetch_audio_assets.py  # optional source-run SoundFont; hash-verified
+./build.ps1                      # Windows portable exe + checksum + actual exe test
+```
 
----
+CI tests Windows/Linux on Python 3.12/3.13. Tests cover theory, generator self-grading, placement simulations, SATB constraints and exports, tool calculations and GUI behavior, storage, rendering, themes and offline operation. The Windows build runs `--self-test` against the actual frozen executable with an isolated profile. Tagged `vX.Y.Z` builds add an Inno Setup installer and publish both artifacts and checksums.
 
-<div align="center">
+| Source area | Responsibility |
+|---|---|
+| `theory/` | Spelled musical math, SATB search/rules, sets/rows/P-L-R and practice calculators. |
+| `exercises/` | Registered generators and answer/input contracts. |
+| `curriculum/` | Skill prerequisites, lessons and the course companion. |
+| `adaptive/` | Placement, mastery and review scheduling. |
+| `audio/` | Synth, SoundFont rendering, event timing and MIDI. |
+| `ui/` | Qt screens, exercise player, notation, piano and theme/accessibility behavior. |
+| `storage/` | Local progress and settings. |
 
-**Built for musicians who want their theory chops to keep up with their playing.** 🎼
+[Contributing](CONTRIBUTING.md) · [Developer guide](CLAUDE.md) · [Theory sources](docs/theory-sources.md) · [Changelog](CHANGELOG.md) · [Future expansion skill](skills/expand-music-theory-master/SKILL.md)
 
-*Created by Fable Five and ChatGPT 6 Astra.*
-
-</div>
+MIT licensed. Created by Fable Five and ChatGPT 6 Astra.
