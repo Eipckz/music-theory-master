@@ -22,6 +22,10 @@ and built automatically by the release workflow.
   uppercase/lowercase Roman numerals; fixed early celebration timer access.
 - Updated attribution to Fable Five and ChatGPT 6 Astra, README capabilities,
   limitations, theory references, application and installer version numbers.
+- Fixed a Windows packaging failure caused by a foreign ICU DLL on the build
+  host's PATH. Builds now run the actual frozen app through a silent isolated
+  startup, screen-navigation, solver, MusicXML and synthesizer self-test before
+  producing a publishable checksum.
 
 ### Pre-Graduate bridge
 - Added a first-class Pre-Graduate level between Advanced and Graduate across

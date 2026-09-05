@@ -137,7 +137,7 @@ pip install -r requirements-dev.txt
 ./build.ps1
 ```
 
-Produces a single self-contained `dist/MusicTheoryMaster.exe` (PyInstaller onefile) plus a `.sha256` checksum. Tagged releases build both the exe and the Inno Setup installer automatically in CI.
+Produces a single self-contained `dist/MusicTheoryMaster.exe` (PyInstaller onefile) plus a `.sha256` checksum. Before reporting success, the build runs that executable's isolated self-test: Qt screens, bundled chord parsing/SATB solving, MusicXML export, and offline audio synthesis. Tagged releases build both the exe and the Inno Setup installer automatically in CI.
 
 ## 🗺️ What's inside
 
