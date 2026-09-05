@@ -29,6 +29,7 @@ $exe = Join-Path $root "dist\MusicTheoryMaster.exe"
 if (Test-Path $exe) {
     Write-Host "==> Testing the packaged application..." -ForegroundColor Cyan
     $smokeReport = Join-Path $root "dist\self-test.json"
+    if (Test-Path -LiteralPath $smokeReport) { Remove-Item -LiteralPath $smokeReport }
     $smoke = Start-Process -FilePath $exe -ArgumentList @("--self-test", "`"$smokeReport`"") -WindowStyle Hidden -PassThru
     if (-not $smoke.WaitForExit(60000)) {
         $smoke.Kill($true)

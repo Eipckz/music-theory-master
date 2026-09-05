@@ -14,7 +14,7 @@ def run_self_test(report_path: str) -> int:
     result = {"ok": False, "checks": []}
     ctx = None
     try:
-        with tempfile.TemporaryDirectory(prefix="mtm_selftest_") as profile:
+        with tempfile.TemporaryDirectory(prefix="mtm_selftest_", ignore_cleanup_errors=True) as profile:
             os.environ["APPDATA"] = profile
             os.environ["QT_QPA_PLATFORM"] = "offscreen"
             from PyQt6.QtWidgets import QApplication
@@ -37,6 +37,8 @@ def run_self_test(report_path: str) -> int:
                 window.go_to(name)
                 app.processEvents()
             result["checks"].append("Qt startup and main screens")
+            from .theory.part_writing.harmony import normalize_constraint
+            normalize_constraint(HarmonyConstraint(chord_symbol="C9"), "C", "major")
             p = PartWritingProblem(slots=[HarmonySlot(HarmonyConstraint(chord_symbol="C9"))])
             solved = solve(p)
             if solved.status != SolveStatus.SOLVED:

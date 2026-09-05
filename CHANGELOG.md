@@ -26,6 +26,8 @@ and built automatically by the release workflow.
   host's PATH. Builds now run the actual frozen app through a silent isolated
   startup, screen-navigation, solver, MusicXML and synthesizer self-test before
   producing a publishable checksum.
+- Provided safe standard streams in the console-free executable so music21's
+  optional-dependency warnings cannot abort chord analysis at import time.
 
 ### Pre-Graduate bridge
 - Added a first-class Pre-Graduate level between Advanced and Graduate across
