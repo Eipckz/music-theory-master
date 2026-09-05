@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import re
 from typing import Any, Callable, Optional
 
 
@@ -18,7 +19,14 @@ class InputMode(str, Enum):
 
 
 def normalize_answer(value: Any) -> str:
-    return str(value).strip().lower().replace(" ", "").replace("\u266f", "#").replace("\u266d", "b")
+    text = str(value).strip().replace(" ", "").replace("\u266f", "#").replace("\u266d", "b")
+    # Case carries musical meaning in interval quality and Roman numerals.
+    # Lowercasing M3/m3 or IV/iv accepts a genuinely different harmony.
+    if re.fullmatch(r"[Mm]\d+", text):
+        return ("major" if text[0] == "M" else "minor") + text[1:]
+    if re.fullmatch(r"[#b]*[ivIV]+[o°ø+]?\d*(?:/[#b]*[ivIV]+)?", text):
+        return "roman:" + text.replace("°", "o")
+    return text.lower()
 
 
 @dataclass

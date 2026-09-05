@@ -48,7 +48,6 @@ class CelebrationOverlay(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName("Celebration")
-        self.hide()
         self._particles: list[dict] = []
         self._active = False
         self._elapsed = 0
@@ -57,6 +56,7 @@ class CelebrationOverlay(QWidget):
         self._hide_timer = QTimer(self)
         self._hide_timer.setSingleShot(True)
         self._hide_timer.timeout.connect(self.dismiss)
+        self.hide()
 
         self._card = QWidget(self)
         self._card.setObjectName("Card")

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
+import copy
 from dataclasses import dataclass
+from functools import lru_cache
 
 from ..chords import Chord, identify_chord, roman_to_chord, seventh, triad
 from ..pitch import Note
@@ -106,9 +108,35 @@ def _special_harmony(label: str, key_tonic: str, mode: str) -> NormalizedHarmony
 
 
 def chord_symbol_to_chord(symbol: str) -> Chord:
+    symbol = symbol.strip().replace("♭", "b").replace("♯", "#")
+    if symbol.lower().startswith("notes:"):
+        names = symbol[6:].replace(",", " ").split()
+        members = [Note.parse(name + "4") for name in names]
+        if not 2 <= len(members) <= 7 or len({n.pc for n in members}) != len(members):
+            raise ValueError("Custom chords need 2–7 distinct pitch classes, root first: notes:C E G Bb")
+        if len({n.letter for n in members}) != len(members):
+            raise ValueError("Use distinct letter names for custom chord factors.")
+        return Chord(members[0], "custom", members, inversion=0)
     match = _SYMBOL_RE.match(symbol.strip())
     if not match:
-        raise ValueError(f"Unsupported chord symbol: {symbol!r}")
+        # music21 is bundled and works entirely offline. Keep the small parser
+        # for familiar symbols and use this for sus/add/altered/extended chords.
+        try:
+            from music21 import harmony as m21h
+            from ..chords import _safe_note
+            figure = re.sub(r"^([A-G])b", r"\1-", symbol)
+            figure = re.sub(r"/([A-G])b", r"/\1-", figure)
+            parsed = m21h.ChordSymbol(figure)
+            root = _safe_note(parsed.root())
+            members = sorted((_safe_note(p) for p in parsed.pitches),
+                             key=lambda n: (n.diatonic_index - root.diatonic_index) % 7)
+            if not 2 <= len(members) <= 7:
+                raise ValueError("Expected 2–7 chord members")
+            bass = _safe_note(parsed.bass())
+            inv = next(i for i, n in enumerate(members) if n.pc == bass.pc)
+            return Chord(root, "extended", members, inversion=inv)
+        except Exception as exc:
+            raise ValueError(f"Cannot read chord {symbol!r}. Try a chord symbol or notes:C E G Bb.") from exc
     letter, accidental, suffix, bass_name = match.groups()
     root = Note.parse(letter.upper() + accidental + "4")
     suffix = suffix or ""
@@ -130,12 +158,21 @@ def chord_symbol_to_chord(symbol: str) -> Chord:
 
 
 def _factor_tuple(chord: Chord) -> tuple[ChordFactor, ...]:
-    return _FACTOR_ORDER[:len(chord.members)]
+    degrees = (ChordFactor.ROOT, ChordFactor.SECOND, ChordFactor.THIRD,
+               ChordFactor.FOURTH, ChordFactor.FIFTH, ChordFactor.SIXTH,
+               ChordFactor.SEVENTH)
+    return tuple(degrees[(n.diatonic_index - chord.root.diatonic_index) % 7]
+                 for n in chord.members)
 
 
 def _same_harmony(left: Chord, right: Chord) -> bool:
     return ({n.pc for n in left.members} == {n.pc for n in right.members}
             and left.inversion == right.inversion)
+
+
+@lru_cache(maxsize=2048)
+def _roman_cached(label: str, key: str, mode: str) -> Chord:
+    return roman_to_chord(label, key, mode)
 
 
 def normalize_constraint(constraint: HarmonyConstraint, key_tonic: str,
@@ -150,7 +187,7 @@ def normalize_constraint(constraint: HarmonyConstraint, key_tonic: str,
         label = special.label
     else:
         if roman:
-            roman_chord = roman_to_chord(roman.replace("°", "o"), key_tonic, mode)
+            roman_chord = copy.deepcopy(_roman_cached(roman.replace("°", "o"), key_tonic, mode))
         if symbol:
             symbol_chord = chord_symbol_to_chord(symbol)
         if roman_chord is not None and symbol_chord is not None \
@@ -189,7 +226,9 @@ def normalize_constraint(constraint: HarmonyConstraint, key_tonic: str,
             applied_target_pc = target_chord.root.pc
         except Exception:  # the label itself remains usable through the main parser
             applied_target_pc = None
-    return NormalizedHarmony(label, chord, _factor_tuple(chord), chord.inversion,
+    elif symbol and not roman and chord.quality == "dom7":
+        applied_target_pc = (chord.root.pc + 5) % 12
+    return NormalizedHarmony(label, chord, special.factors if special else _factor_tuple(chord), chord.inversion,
                              special.special if special else "", applied_target_pc)
 
 
@@ -206,8 +245,10 @@ def harmonies_for_slot(problem: PartWritingProblem, slot_index: int) -> list[Nor
         labels = functional_candidates(problem, slot_index)
     out = []
     for label in labels:
+        is_symbol = bool(re.match(r"^[A-Ga-g](?:[#b]|maj|min|dim|aug|sus|add|m|\d|/|$)", label)) or label.lower().startswith("notes:")
         temp = HarmonyConstraint(
-            roman_numeral=label,
+            roman_numeral=None if is_symbol else label,
+            chord_symbol=label if is_symbol else None,
             figured_bass=constraint.figured_bass,
             inversion=constraint.inversion,
             exact_bass_pitch=constraint.exact_bass_pitch,
@@ -238,16 +279,20 @@ def functional_candidates(problem: PartWritingProblem, slot_index: int) -> list[
         if problem.cadence == CadenceType.PLAGAL:
             return ["IV" if problem.mode == "major" else "iv"]
         return ["V", "V7"]
-    if slot_index == 0:
-        return ["I" if problem.mode == "major" else "i"]
-    phase = slot_index / max(1, last)
-    if phase < 0.45:
-        return (["I", "vi", "iii"] if problem.mode == "major"
-                else ["i", "VI", "III"])
-    if phase < 0.75:
-        return (["ii6", "IV", "vi"] if problem.mode == "major"
-                else ["iio6", "iv", "VI"])
-    return ["V", "V7", "vi" if problem.mode == "major" else "VI"]
+    # Assignment clues, not column position, determine the harmony. Include
+    # inversions so a given bass/figure can identify a chord in any column.
+    triads = (["I", "ii", "iii", "IV", "V", "vi", "viio"] if problem.mode == "major"
+              else ["i", "iio", "III", "iv", "V", "VI", "viio", "VII", "v"])
+    sevenths = (["I", "ii", "iii", "IV", "V", "vi", "viiø"] if problem.mode == "major"
+                else ["i", "iiø", "III", "iv", "V", "VI", "viio", "VII"])
+    figure = (problem.slots[slot_index].harmony.figured_bass or "").replace("/", "")
+    if figure in {"7", "65", "43", "42", "2"}:
+        return [label + figure for label in sevenths]
+    if figure in {"6", "63", "64", "53"}:
+        suffix = {"63": "6", "53": ""}.get(figure, figure)
+        return [label + suffix for label in triads]
+    return ([label + inv for label in triads for inv in ("", "6", "64")]
+            + [label + inv for label in sevenths for inv in ("7", "65", "43", "42")])
 
 
 def infer_harmony(notes: list[Note], key_tonic: str, mode: str) -> str:

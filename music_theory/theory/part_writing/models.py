@@ -107,8 +107,11 @@ class CadenceType(str, Enum):
 
 class ChordFactor(str, Enum):
     ROOT = "root"
+    SECOND = "second"
     THIRD = "third"
+    FOURTH = "fourth"
     FIFTH = "fifth"
+    SIXTH = "sixth"
     SEVENTH = "seventh"
 
 
@@ -300,6 +303,7 @@ class SolverOptions:
     cancellation: Optional[threading.Event] = None
     progress_callback: Optional[Callable[[int, int], None]] = None
     validate_harmonic_grammar: bool = False
+    beam_width: int = 0  # zero retains exhaustive ranking; positive bounds live paths
 
     def normalized(self) -> "SolverOptions":
         return SolverOptions(
@@ -309,4 +313,5 @@ class SolverOptions:
             cancellation=self.cancellation,
             progress_callback=self.progress_callback,
             validate_harmonic_grammar=bool(self.validate_harmonic_grammar),
+            beam_width=max(0, int(self.beam_width)),
         )

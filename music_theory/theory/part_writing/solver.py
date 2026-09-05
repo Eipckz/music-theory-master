@@ -82,14 +82,18 @@ def _record_rejections(evaluation: RuleEvaluation, counts: Counter,
 
 
 def _slot_candidates(problem: PartWritingProblem, profile: RuleProfile,
-                     statistics: SolveStatistics) -> tuple[list[list[_SlotCandidate]], list[int]]:
+                     statistics: SolveStatistics, options: SolverOptions,
+                     started: float) -> tuple[list[list[_SlotCandidate]], list[int]]:
     all_slots: list[list[_SlotCandidate]] = []
     empty_slots = []
     for index in range(len(problem.slots)):
+        _check_limits(options, statistics, started)
         slot_candidates = []
         harmonies = harmonies_for_slot(problem, index)
         for harmony in harmonies:
-            for candidate in enumerate_voicings(problem, index, harmony, profile, maximum=600):
+            for candidate in enumerate_voicings(
+                    problem, index, harmony, profile, maximum=None,
+                    check_limits=lambda: _check_limits(options, statistics, started)):
                 slot_candidates.append(_SlotCandidate(harmony, candidate))
         # Same voicing can be reachable through equivalent user alternatives;
         # keep the label in identity so genuinely different analyses remain visible.
@@ -120,7 +124,13 @@ def solve(problem: PartWritingProblem, profile: RuleProfile | None = None,
         return SolveResult(SolveStatus.CANCELLED, statistics=statistics,
                            message="The search was cancelled by the user.")
     try:
-        slots, empty_slots = _slot_candidates(problem, profile, statistics)
+        slots, empty_slots = _slot_candidates(problem, profile, statistics, options, started)
+    except (_Cancelled, _LimitReached) as exc:
+        statistics.elapsed_seconds = time.perf_counter() - started
+        cancelled = isinstance(exc, _Cancelled)
+        return SolveResult(SolveStatus.CANCELLED if cancelled else SolveStatus.TIMEOUT,
+                           statistics=statistics, message="Search cancelled." if cancelled else
+                           "Search budget reached while enumerating voicings; no impossibility claim.")
     except ValueError as exc:
         statistics.elapsed_seconds = time.perf_counter() - started
         violation = RuleViolation(
@@ -140,6 +150,7 @@ def solve(problem: PartWritingProblem, profile: RuleProfile | None = None,
     rejection_samples: dict[RuleCode, RuleViolation] = {}
     transition_cache: dict[tuple, RuleEvaluation] = {}
     three_cache: dict[tuple, RuleEvaluation] = {}
+    pruned = False
     try:
         states: dict[tuple, list[_Path]] = {}
         for candidate in slots[0]:
@@ -148,6 +159,11 @@ def solve(problem: PartWritingProblem, profile: RuleProfile | None = None,
             states.setdefault((candidate.signature,), []).append(path)
 
         for slot_index in range(1, len(slots)):
+            if options.beam_width:
+                ranked = sorted((p for bucket in states.values() for p in bucket),
+                                key=lambda p: (p.score, p.tie_key))
+                pruned = pruned or len(ranked) > options.beam_width
+                states = {(i,): [p] for i, p in enumerate(ranked[:options.beam_width])}
             next_states: dict[tuple, list[_Path]] = defaultdict(list)
             for paths in states.values():
                 for path in paths:
@@ -202,6 +218,10 @@ def solve(problem: PartWritingProblem, profile: RuleProfile | None = None,
                         if len(bucket) > options.top_k:
                             del bucket[options.top_k:]
             states = dict(next_states)
+            # Only adjacent events influence these evaluations. Retaining
+            # old-layer caches consumes memory without helping a long phrase.
+            transition_cache.clear()
+            three_cache.clear()
             if options.progress_callback is not None:
                 try:
                     options.progress_callback(slot_index + 1, len(problem.slots))
@@ -260,12 +280,16 @@ def solve(problem: PartWritingProblem, profile: RuleProfile | None = None,
     if distinct:
         return SolveResult(
             SolveStatus.SOLVED, distinct, statistics=statistics,
-            message=f"Found {len(distinct)} valid solution{'s' if len(distinct) != 1 else ''}.")
+            message=f"Found {len(distinct)} valid solution{'s' if len(distinct) != 1 else ''}."
+            + (" Bounded search: ranking is among explored paths, not all possible answers." if pruned else ""))
     diagnostics = no_solution_diagnostics(
         problem, profile, [], rejection_counts, rejection_samples)
     return SolveResult(
-        SolveStatus.NO_SOLUTION, diagnostics=diagnostics, statistics=statistics,
-        message="No solution satisfies every hard rule and user constraint.")
+        SolveStatus.TIMEOUT if pruned else SolveStatus.NO_SOLUTION,
+        diagnostics=diagnostics, statistics=statistics,
+        message=("No completion found in bounded search. Increase search width or use exhaustive search; "
+                 "this does not prove the assignment impossible." if pruned else
+                 "No solution satisfies every hard rule and user constraint in the selected harmonic vocabulary."))
 
 
 def validate_returned_solution(problem: PartWritingProblem,

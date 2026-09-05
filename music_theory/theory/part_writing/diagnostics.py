@@ -139,7 +139,7 @@ def preflight_diagnostics(problem: PartWritingProblem,
                     notes=(locked[upper].name, locked[lower].name),
                     correction=f"Unlock or move the {upper.value} or {lower.value} note.",
                     field=f"slot.{index}.{lower.value}"))
-        if len(locked_notes) == 4 and slot.harmony.required_doubling is not None and harmonies:
+        if len(locked_notes) == 4 and slot.harmony.required_doubling is not None and len(harmonies) == 1:
             harmony = harmonies[0]
             count = sum(harmony.factor_for(note) == slot.harmony.required_doubling
                         for _, note in locked_notes)
@@ -150,7 +150,7 @@ def preflight_diagnostics(problem: PartWritingProblem,
                     f"{slot.harmony.required_doubling.value} is not doubled.",
                     slots=(index,), correction="Unlock one voice or change the required doubling.",
                     field=f"slot.{index}.required_doubling"))
-        if len(locked_notes) == 4 and harmonies and profile.require_complete_triads:
+        if len(locked_notes) == 4 and len(harmonies) == 1 and profile.require_complete_triads:
             harmony = harmonies[0]
             if len(harmony.factors) == 3:
                 present = {harmony.factor_for(note) for _, note in locked_notes}

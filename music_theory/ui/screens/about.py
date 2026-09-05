@@ -27,5 +27,6 @@ class AboutScreen(QWidget):
             "makes no network connections."))
         lay.addWidget(subtle(
             "Built with PyQt6, music21, NumPy, and SciPy."))
+        lay.addWidget(subtle("A tool created by Fable Five and ChatGPT 6 Astra."))
         root.addWidget(frame)
         root.addStretch(1)

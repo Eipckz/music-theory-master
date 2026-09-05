@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import product
+from typing import Callable
 
 from ..pitch import Note
 from .harmony import NormalizedHarmony, scale_degree
 from .models import (
-    ChordFactor, PartWritingProblem, Voice, VOICE_ORDER, Voicing,
+    ChordFactor, PartWritingProblem, RuleCode, RuleSeverity, Voice, VOICE_ORDER, Voicing,
 )
 from .profiles import RuleProfile
 from .rules import validate_local
@@ -87,6 +88,8 @@ def _constraint_signature(problem: PartWritingProblem, slot_index: int,
         problem.key_tonic, problem.mode, harmony.label,
         tuple(member.name_no_octave for member in harmony.members), harmony.inversion,
         tuple(voices), ranges, profile.id, profile.require_complete_triads,
+        tuple(sorted((code.value, severity.value) for code, severity in profile.severities.items())),
+        tuple(sorted(profile.weights.items())),
         profile.allow_incomplete_dominant_seventh, profile.permit_voice_unisons,
         profile.max_tenor_bass_spacing,
         slot.harmony.exact_bass_pitch.name if slot.harmony.exact_bass_pitch else "",
@@ -121,7 +124,8 @@ def _voice_pools(problem: PartWritingProblem, slot_index: int,
 
 def enumerate_voicings(problem: PartWritingProblem, slot_index: int,
                        harmony: NormalizedHarmony, profile: RuleProfile,
-                       *, maximum: int = 2000) -> list[CandidateVoicing]:
+                       *, maximum: int | None = 2000,
+                       check_limits: Callable[[], None] | None = None) -> list[CandidateVoicing]:
     key = _constraint_signature(problem, slot_index, harmony, profile)
     cached = _CACHE.get(key)
     if cached is not None:
@@ -131,17 +135,18 @@ def enumerate_voicings(problem: PartWritingProblem, slot_index: int,
         _CACHE[key] = ()
         return []
     candidates = []
-    for notes in product(*(pools[voice] for voice in VOICE_ORDER)):
+    for candidate_index, notes in enumerate(product(*(pools[voice] for voice in VOICE_ORDER))):
+        if check_limits is not None and candidate_index % 128 == 0:
+            check_limits()
         voicing = Voicing(*notes)
         # Cheapest vertical checks before building full diagnostics.
-        if not (voicing.soprano.midi >= voicing.alto.midi
-                >= voicing.tenor.midi >= voicing.bass.midi):
+        if profile.severity(RuleCode.VOICE_CROSSING) == RuleSeverity.HARD_ERROR and not (
+                voicing.soprano.midi >= voicing.alto.midi >= voicing.tenor.midi >= voicing.bass.midi):
             continue
-        if voicing.soprano.midi - voicing.alto.midi > 12:
-            continue
-        if voicing.alto.midi - voicing.tenor.midi > 12:
-            continue
-        if voicing.tenor.midi - voicing.bass.midi > profile.max_tenor_bass_spacing:
+        if profile.severity(RuleCode.UPPER_SPACING) == RuleSeverity.HARD_ERROR and (
+                voicing.soprano.midi - voicing.alto.midi > 12
+                or voicing.alto.midi - voicing.tenor.midi > 12
+                or voicing.tenor.midi - voicing.bass.midi > profile.max_tenor_bass_spacing):
             continue
         evaluation = validate_local(slot_index, problem, voicing, harmony, profile)
         if evaluation.hard_violations:

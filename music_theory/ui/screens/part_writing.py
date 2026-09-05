@@ -11,7 +11,7 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QDoubleSpinBox, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QListWidget, QPushButton, QSpinBox, QSplitter, QTabWidget, QTableView,
+    QListWidget, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter, QTabWidget, QTableView,
     QTableWidget, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget,
 )
 
@@ -44,6 +44,46 @@ _ROWS = ("Roman numeral", "Figured bass", "Chord symbol",
 _VOICE_ROWS = {
     3: Voice.SOPRANO, 4: Voice.ALTO, 5: Voice.TENOR, 6: Voice.BASS,
 }
+
+
+def parse_assignment(text: str, template: PartWritingProblem) -> PartWritingProblem:
+    """Parse aligned, pipe-separated clues atomically; every supplied note is a given."""
+    import copy
+    rows = {}
+    aliases = {"s": "soprano", "a": "alto", "t": "tenor", "b": "bass",
+               "roman": "roman", "chords": "chords", "figures": "figures",
+               "duration": "duration", **{v.value: v.value for v in VOICE_ORDER}}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        label, sep, values = line.partition(":")
+        key = aliases.get(label.strip().lower())
+        if not sep or not key or key in rows:
+            raise ValueError("Use each row once: Roman, Chords, Figures, S, A, T, B, Duration.")
+        rows[key] = [v.strip() for v in values.split("|")]
+    lengths = {len(row) for row in rows.values()}
+    if len(lengths) != 1:
+        raise ValueError("Every supplied row must have the same number of | separated cells; use ? for unknowns.")
+    result = copy.deepcopy(template)
+    result.slots = [HarmonySlot() for _ in range(next(iter(lengths)))]
+    for key, cells in rows.items():
+        for index, value in enumerate(cells):
+            if value in ("", "?", "-"):
+                continue
+            slot = result.slots[index]
+            if key in {"roman", "chords", "figures"}:
+                setattr(slot.harmony, {"roman": "roman_numeral", "chords": "chord_symbol",
+                                      "figures": "figured_bass"}[key], value)
+            elif key == "duration":
+                import math
+                slot.duration = float(value)
+                if not math.isfinite(slot.duration) or slot.duration <= 0:
+                    raise ValueError("Durations must be finite, positive beats.")
+            else:
+                constraint = slot.voice(Voice(key))
+                constraint.pitch = _parse_pitch_constraint(value)
+                constraint.locked = True
+    return result
 
 _CUSTOM_RULE_LABELS = {
     "Enforce voice ranges": "VL_RANGE",
@@ -558,6 +598,14 @@ class PartWritingScreen(QWidget):
         self.tabs.setAccessibleName("Part writing and semester guide")
         self.tabs.addTab(self._build_lab(), "Part Writing")
         self.tabs.addTab(CourseGuideWidget(ctx), "Fall 2026 Guide")
+        roadmap = QTextBrowser()
+        from ...curriculum.lessons import LESSONS
+        roadmap.setHtml("<h2>Musicianship III → IV → post-tonal study</h2>"
+                        "<p>A practice sequence; your instructor's syllabus determines course requirements. "
+                        "Open these named skills in Learn for lessons and graded drills.</p>" +
+                        "".join("<h3>" + pages[0].title + "</h3><p>" + pages[-1].body + "</p>"
+                                for sid, pages in LESSONS.items() if sid.startswith("tonal.")))
+        self.tabs.addTab(roadmap, "Musicianship III–IV")
         root.addWidget(self.tabs, 1)
         self._connect_model()
         self._load_controls_from_problem()
@@ -606,6 +654,23 @@ class PartWritingScreen(QWidget):
         self.edit_profile_btn.clicked.connect(self._edit_profile)
         toolbar.addWidget(self.edit_profile_btn, 2, 4)
         layout.addLayout(toolbar)
+        search_row = QHBoxLayout()
+        self.search_seconds = QSpinBox(); self.search_seconds.setRange(1, 600); self.search_seconds.setValue(30)
+        self.search_seconds.setAccessibleName("Search time budget in seconds")
+        self.search_width = QSpinBox(); self.search_width.setRange(0, 1000); self.search_width.setValue(80)
+        self.search_width.setSpecialValueText("Exhaustive")
+        self.search_width.setAccessibleName("Search width; zero is exhaustive")
+        search_row.addWidget(QLabel("Search seconds")); search_row.addWidget(self.search_seconds)
+        search_row.addWidget(QLabel("Search width")); search_row.addWidget(self.search_width)
+        paste = QPushButton("Paste assignment…"); paste.clicked.connect(self._paste_assignment)
+        paste.setAccessibleName("Paste aligned harmony and voice clues")
+        search_row.addWidget(paste)
+        search_row.addStretch(1)
+        layout.addLayout(search_row)
+        help_text = QLabel("Add any number of slots. Enter any mix of S/A/T/B clues; blanks are unknown. "
+                           "Chords: G7/B, Dsus4, C9, or notes:C E G Bb. Use Slot constraints for alternatives. "
+                           "Four voices reduce extended chords; required tones remain mandatory.")
+        help_text.setWordWrap(True); help_text.setObjectName("Subtle"); layout.addWidget(help_text)
 
         practice_row = QHBoxLayout()
         practice_row.addWidget(QLabel("Practice type"))
@@ -669,6 +734,7 @@ class PartWritingScreen(QWidget):
         self.staff.slotSelected.connect(self._select_slot)
         right_layout.addWidget(self.staff, 1)
         self.status = QLabel("Ready")
+        self.status.setWordWrap(True)
         self.status.setAccessibleName("Solver status")
         right_layout.addWidget(self.status)
         self.diagnostics = QTextBrowser()
@@ -677,6 +743,7 @@ class PartWritingScreen(QWidget):
         right_layout.addWidget(self.diagnostics)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 3); splitter.setStretchFactor(1, 4)
+        splitter.setSizes([540, 640])
         layout.addWidget(splitter, 1)
 
         commands = QGridLayout()
@@ -710,7 +777,11 @@ class PartWritingScreen(QWidget):
         self.stop_btn.setEnabled(False)
         self.reveal_btn.setCheckable(True)
         layout.addLayout(commands)
-        return host
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setWidget(host)
+        return scroll
 
     def _connect_model(self) -> None:
         self.model.changed.connect(self._problem_changed)
@@ -765,8 +836,7 @@ class PartWritingScreen(QWidget):
     @guard("PartWritingScreen._controls_changed")
     def _controls_changed(self) -> None:
         self._sync_controls()
-        self._autosave()
-        self._refresh_preview()
+        self._problem_changed()
 
     @guard("PartWritingScreen._edit_profile")
     def _edit_profile(self) -> None:
@@ -782,9 +852,35 @@ class PartWritingScreen(QWidget):
 
     @guard("PartWritingScreen._problem_changed")
     def _problem_changed(self) -> None:
+        self._revision = getattr(self, "_revision", 0) + 1
         self.solutions = []
         self._autosave()
         self._refresh_preview()
+
+    def _paste_assignment(self) -> None:
+        dialog = QDialog(self); dialog.setWindowTitle("Paste an assignment"); dialog.resize(650, 400)
+        layout = QVBoxLayout(dialog)
+        label = QLabel("Enter aligned rows separated by |. Omit unknown voice rows; use ? for unknown cells. "
+                       "Import replaces the table and locks supplied notes. Key/cadence/profile stay selected.")
+        label.setWordWrap(True); layout.addWidget(label)
+        editor = QPlainTextEdit(); editor.setPlaceholderText(
+            "Roman: I | IV | V7 | I\nS: E4 | F4 | ? | E4\nB: C3 | ? | G2 | C3")
+        editor.setAccessibleName("Assignment rows"); layout.addWidget(editor)
+        error = QLabel(); error.setWordWrap(True); layout.addWidget(error)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        def accept():
+            try:
+                self._sync_controls()
+                problem = parse_assignment(editor.toPlainText(), self.problem)
+            except ValueError as exc:
+                error.setText(str(exc)); return
+            self.problem = problem
+            self.model.replace_problem(problem)
+            self.practice = None
+            self._problem_changed()
+            dialog.accept()
+        buttons.accepted.connect(accept); buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons); dialog.exec()
 
     def _autosave(self) -> None:
         self.ctx.db.kv_set("part_writing.autosave", problem_to_dict(self.problem))
@@ -967,8 +1063,10 @@ class PartWritingScreen(QWidget):
         if self._thread is not None:
             return
         self._sync_controls(); self._cancel = threading.Event()
+        self._solve_revision = getattr(self, "_revision", 0)
         options = SolverOptions(top_k=self.top_k.value(), cancellation=self._cancel,
-                                max_nodes=350_000, time_limit_seconds=20.0)
+                                max_nodes=5_000_000, time_limit_seconds=self.search_seconds.value(),
+                                beam_width=self.search_width.value())
         import copy
         self._thread = QThread(self)
         self._worker = _SolveWorker(copy.deepcopy(self.problem), self.profile, options)
@@ -988,6 +1086,9 @@ class PartWritingScreen(QWidget):
 
     @guard("PartWritingScreen._solve_finished")
     def _solve_finished(self, payload) -> None:
+        if getattr(self, "_solve_revision", 0) != getattr(self, "_revision", 0):
+            self.status.setText("Assignment changed during search. Solve again for the current clues.")
+            return
         if isinstance(payload, Exception):
             self.status.setText("Solver error")
             self.diagnostics.setPlainText(str(payload)); return

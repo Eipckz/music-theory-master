@@ -4,7 +4,24 @@ All notable changes to Music Theory Master are documented here.
 Versioning follows [SemVer](https://semver.org); releases are tagged `vX.Y.Z`
 and built automatically by the release workflow.
 
-## [1.0.0] - Unreleased
+## [1.1.0] - 2026-09-05
+
+### Assignment solver and Musicianship III–IV
+- Released the previously draft-only August Four-Part Writing Lab and bridge.
+- Added aligned assignment paste with locked mixed SATB clues, flexible chord
+  symbols/custom note collections, and explicit four-voice extended reductions.
+- Removed position-based restrictions from blank harmony; included diatonic
+  inversions and chord-symbol alternatives in per-slot vocabulary.
+- Added adjustable search seconds/width, cancellation in local enumeration,
+  honest bounded-search outcomes, and no silent local-candidate truncation.
+- Fixed stale profile caches/results and retained tendency tones during
+  harmonic prolongation; augmented-sixth tones are not chordal sevenths.
+- Added seven lesson/drill skills and a visible Musicianship III–IV roadmap
+  before the post-tonal bridge, with explicit curriculum prerequisites.
+- Fixed answer grading that conflated major/minor interval abbreviations and
+  uppercase/lowercase Roman numerals; fixed early celebration timer access.
+- Updated attribution to Fable Five and ChatGPT 6 Astra, README capabilities,
+  limitations, theory references, application and installer version numbers.
 
 ### Pre-Graduate bridge
 - Added a first-class Pre-Graduate level between Advanced and Graduate across
@@ -36,6 +53,8 @@ and built automatically by the release workflow.
 - Added full/voice/chord/transition/comparison playback and MusicXML export.
 - Added the Advanced `harmony.part_writing` curriculum skill and an offline
   Fall 2026 guide for MUS 2710, MUS 2730, and MUS 2750.
+
+## [1.0.0] - 2026-06-11
 
 ### Staff & notation
 - Accidentals are placed from real font metrics: smaller dedicated font, right

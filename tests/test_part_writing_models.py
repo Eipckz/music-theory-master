@@ -72,7 +72,7 @@ def test_special_chromatic_spellings_are_explicit():
 def test_blank_harmony_uses_grammar_but_does_not_override_explicit_input():
     problem = PartWritingProblem(slots=[HarmonySlot(), HarmonySlot(), HarmonySlot()],
                                  cadence=CadenceType.HALF)
-    assert functional_candidates(problem, 0) == ["I"]
+    assert {"I", "ii6", "IV", "V7"} <= set(functional_candidates(problem, 0))
     assert functional_candidates(problem, 2) == ["V"]
 
 

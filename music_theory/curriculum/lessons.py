@@ -703,6 +703,48 @@ LESSONS: dict[str, list[LessonPage]] = {
     ],
 }
 
+LESSONS.update({
+    "tonal.modes": [
+        _P("A mode has a tonic", "Learn the sound and spelling around a tonal center. D Dorian uses D–E–F–G–A–B–C; D is home. Playing C-major notes from D is a starting construction, not a complete explanation of modal function.",
+           play=_melody(62, 64, 65, 67, 69, 71, 72, 74)),
+        _P("Compare parallel collections", "Against parallel major: Dorian has flat 3/7, Phrygian flat 2/3/6/7, Lydian sharp 4, Mixolydian flat 7, Aeolian flat 3/6/7, Locrian flat 2/3/5/6/7. Sing the characteristic degree against a tonic drone."),
+        _P("Modal versus tonal expectations", "A modal flat 7 is not a leading tone a semitone below tonic. Do not impose V7–I tendencies on every modal phrase. The Part Writing Lab currently uses major/minor tonal context; use these lessons and scale tools for modal study."),
+    ],
+    "tonal.tendencies": [
+        _P("Two different sevenths", "In C major, V7 is G–B–D–F. B is scale degree 7 but the THIRD of the chord. F is scale degree 4 but the SEVENTH of the chord. Keep scale degree and chord factor separate.",
+           play=_chord(55, 59, 62, 65), staff={"clef": "treble", "notes": "G4 B4 D5 F5"}),
+        _P("Resolve the voices", "In an ordinary V7–I resolution, B rises to C (leading tone → tonic) and F falls to E (chordal seventh → tonic third). In C minor the corresponding resolutions are B→C and F→Eb. Track each voice, not just the collection of destination notes.",
+           play=_chords([[55, 59, 62, 65], [48, 60, 60, 64]])),
+        _P("Completeness and exceptions", "A complete root-position V7 with strict tendencies may resolve to an incomplete tonic; an incomplete V7 may omit its fifth and double its root. Some courses permit an inner leading tone to fall to scale degree 5. Use the instructor's rule profile. A final V7 can also be a half-cadence ending rather than an unresolved error."),
+        _P("Lab checkpoint", "Enter V7–I, put B4 in soprano and F4 in alto in the V7 slot, and solve. Inspect C5 and E4 in those same voices. Then enter F#4 instead of E4 in the tonic slot and read the membership diagnostic."),
+    ],
+    "tonal.nonchord": [
+        _P("Harmony plus rhythmic context", "A note outside the chord is not automatically a mistake. Identify the underlying harmony, metrical position, approach, and departure before naming the event."),
+        _P("Passing and neighboring", "Over C major, C–D–E fills a third: D is passing. C–D–C decorates C: D is a neighbor. Both examples use unaccented stepwise dissonance; accented variants need their own context.", play=_melody(60, 62, 64, 60, 62, 60)),
+        _P("Suspensions and anticipations", "A suspension is prepared, held into an accented dissonance, then resolves down by step (such as F over a new C bass resolving to E). An anticipation arrives before the harmony to which it belongs. The lab solves chordal snapshots; it does not automatically classify tied or rhythmically accented non-chord tones."),
+    ],
+    "tonal.phrases": [
+        _P("Cadence before label", "Hear and mark phrase endings. A PAC has root-position V–I and tonic in soprano. A half cadence ends on V. A deceptive V–vi avoids the expected tonic; IV–I is plagal."),
+        _P("Period and sentence", "A period pairs an antecedent with a more conclusive consequent; parallel periods share opening material. A sentence commonly presents an idea and repetition, then fragmentation/continuation and a cadence. The familiar 2+2+4 pattern is a model, not a universal measure-count law."),
+        _P("Assignment checkpoint", "Mark the bass, soprano endpoint, and harmonic rhythm before filling inner voices. I–?–IV alone does not uniquely determine V: key, bass, melodic clues, style and phrase function may permit several answers."),
+    ],
+    "tonal.tonicization": [
+        _P("Read the slash", "V7/V means the dominant seventh of V. In C major it is D–F#–A–C, pointing to G. F# is a temporary leading tone. Resolve the secondary chord's tendencies relative to its target, not blindly to the home tonic.", play=_chords([[50, 57, 60, 66], [43, 55, 59, 67]])),
+        _P("Practice in stages", "Identify the target; spell its major dominant triad; add the minor seventh; identify the temporary leading tone; then write the resolution. Try V7/ii, V7/vi, and V7/IV in several major keys."),
+        _P("Sequences", "A sequence repeats a pattern at new pitch levels. Applied-dominant chains can keep moving rather than settling immediately. State the assignment's treatment of delayed or transferred tendency resolutions before enforcing a strict local rule."),
+    ],
+    "tonal.chromatic_predominants": [
+        _P("Mixture keeps the tonic", "In C major, iv (F–Ab–C) and bVI (Ab–C–Eb) borrow color from parallel C minor. Compare scale spelling before and after the change; an accidental alone does not establish a new key."),
+        _P("Neapolitan sixth", "In C, N6 is Db major in first inversion: F in bass with Db and Ab above. It usually acts as a predominant. Its characteristic lowered scale degree 2 calls for contextual voice-leading, often through cadential six-four."),
+        _P("Augmented sixths", "In C, Ab and F# expand outward to G. Italian adds C; French adds C and D; German adds C and Eb. German-to-V can create parallel fifths, which a cadential six-four can help avoid. Spell F#, not Gb, to communicate the rising tendency."),
+    ],
+    "tonal.modulation": [
+        _P("Require tonal evidence", "A secondary dominant briefly tonicizes a chord. A modulation establishes a new tonic through sustained context and cadential support. Analyze the phrase after the chromatic chord, not only the accidental."),
+        _P("Pivot in two keys", "C-major vi (A minor) can also be ii in G major. Label the pivot in both keys, then confirm G with its dominant and cadence. Direct and chromatic modulations may avoid a shared diatonic pivot."),
+        _P("Before post-tonal study", "Checkpoint: spell modes; resolve V7 in major/minor; complete partial SATB work; distinguish non-chord tones; explain applied chords, mixture, N6/+6; and support phrase/modulation readings with evidence. Then begin pitch classes, sets and neo-Riemannian transformations. Course numbering varies; this is a practice path, not an official Musicianship IV syllabus."),
+    ],
+})
+
 def lesson_for(skill_id: str) -> list[LessonPage]:
     """Pages for a skill (empty if the skill has no lesson)."""
     return LESSONS.get(skill_id, [])

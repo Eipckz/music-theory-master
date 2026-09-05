@@ -205,7 +205,25 @@ def validate_chord(slot_index: int, problem: PartWritingProblem, voicing: Voicin
 
     counts = _factor_counts(voicing, harmony)
     required = set(harmony.factors)
-    if len(harmony.factors) == 3 and profile.require_complete_triads:
+    if len(harmony.factors) > 4:
+        # Four voices cannot sound every member of an extended chord. Keep
+        # the defining third/seventh and highest extension; the bass is
+        # independently required by inversion. Explicit required tones below
+        # can override feasibility, never silently disappear.
+        required = {f for f in (ChordFactor.THIRD, ChordFactor.SEVENTH)
+                    if f in harmony.factors}
+        required.add(harmony.bass_factor)
+        for extension in (ChordFactor.SIXTH, ChordFactor.FOURTH, ChordFactor.SECOND):
+            if extension in harmony.factors:
+                required.add(extension)
+                break
+        missing = required - set(counts)
+        if missing:
+            _add(result, _violation(
+                profile, RuleCode.CHORD_COMPLETENESS, "Missing defining extended-chord tone",
+                "Four-part reduction requires bass, third, seventh (when present), and highest extension.",
+                slots=(slot_index,), correction="Include the defining tones or enter a custom notes: reduction."))
+    elif len(harmony.factors) <= 3 and profile.require_complete_triads:
         missing = required - set(counts)
         if missing:
             names = ", ".join(factor.value for factor in sorted(missing, key=lambda x: x.value))
@@ -217,7 +235,7 @@ def validate_chord(slot_index: int, problem: PartWritingProblem, voicing: Voicin
             ))
     elif len(harmony.factors) == 4:
         missing = required - set(counts)
-        incomplete_v7 = (harmony.inversion == 0 and "V7" in harmony.label.upper()
+        incomplete_v7 = (harmony.inversion == 0 and harmony.chord.quality == "dom7"
                          and missing == {ChordFactor.FIFTH}
                          and counts[ChordFactor.ROOT] == 2
                          and profile.allow_incomplete_dominant_seventh)
@@ -530,8 +548,11 @@ def validate_special_resolution(slot_index: int, problem: PartWritingProblem,
 def validate_tendency_tones(slot_index: int, problem: PartWritingProblem,
                             previous: Voicing, current: Voicing,
                             previous_harmony: NormalizedHarmony,
-                            profile: RuleProfile) -> RuleEvaluation:
+                            profile: RuleProfile,
+                            current_harmony: NormalizedHarmony | None = None) -> RuleEvaluation:
     result = RuleEvaluation()
+    prolongation = (current_harmony is not None
+                    and current_harmony.chord.root.pc == previous_harmony.chord.root.pc)
     if _dominant_context(previous_harmony):
         target_pc = (previous_harmony.applied_target_pc
                      if previous_harmony.applied_target_pc is not None
@@ -547,7 +568,8 @@ def validate_tendency_tones(slot_index: int, problem: PartWritingProblem,
                 and current[voice].pc == (target_pc + 7) % 12
                 and current[voice].midi < previous[voice].midi
             )
-            if not (resolved or inner_exception):
+            retained = prolongation and current[voice] == previous[voice]
+            if not (resolved or inner_exception or retained):
                 _add(result, _violation(
                     profile, RuleCode.LEADING_TONE_RESOLUTION,
                     "Unresolved leading tone",
@@ -557,10 +579,12 @@ def validate_tendency_tones(slot_index: int, problem: PartWritingProblem,
                     notes=(previous[voice].name, current[voice].name),
                     correction="Resolve the leading tone upward by step.",
                 ))
-    seventh = previous_harmony.member_for(ChordFactor.SEVENTH)
+    seventh = (previous_harmony.member_for(ChordFactor.SEVENTH)
+               if previous_harmony.special != "augmented-sixth" else None)
     if seventh is not None:
         for voice in VOICE_ORDER:
             if previous[voice].name_no_octave == seventh.name_no_octave \
+                    and not (prolongation and current[voice] == previous[voice]) \
                     and not _downward_step(previous[voice], current[voice]):
                 _add(result, _violation(
                     profile, RuleCode.CHORDAL_SEVENTH_RESOLUTION,
@@ -682,7 +706,7 @@ def validate_transition(slot_index: int, problem: PartWritingProblem,
     result.extend(validate_voice_overlap(slot_index, previous, current, profile))
     result.extend(validate_parallel_and_direct_intervals(slot_index, previous, current, profile))
     result.extend(validate_tendency_tones(
-        slot_index, problem, previous, current, previous_harmony, profile))
+        slot_index, problem, previous, current, previous_harmony, profile, current_harmony))
     result.extend(validate_special_resolution(
         slot_index, problem, previous, current, previous_harmony,
         current_harmony, profile))
