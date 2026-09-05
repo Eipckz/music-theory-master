@@ -272,6 +272,9 @@ class ReferenceScreen(QWidget):
         tabs = QTabWidget()
         tabs.addTab(self._build_circle_tab(), "Circle of fifths")
         tabs.addTab(self._build_explorer_tab(), "Explorer")
+        from .workbench import Workbench
+        tabs.addTab(Workbench(ctx), "Analyze notes")
+        tabs.addTab(Workbench(ctx, rhythm=True), "Rhythm && meter")
         tabs.addTab(self._build_posttonal_tab(), "Post-tonal bridge")
         tabs.addTab(self._build_glossary_tab(), "Glossary")
         self.tabs = tabs

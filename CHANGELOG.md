@@ -4,6 +4,14 @@ All notable changes to Music Theory Master are documented here.
 Versioning follows [SemVer](https://semver.org); releases are tagged `vX.Y.Z`
 and built automatically by the release workflow.
 
+## [1.2.0] - 2026-09-05
+
+- Added Reference note analysis with spelling-aware directed intervals, frequencies, chord collection names, optional tonal interpretation and playback for up to 64 supplied pitches.
+- Added an exact rhythm/meter calculator with rests, dots, triplets, multiple bars, simple/compound meter explanations and explicit under/overfilled bars.
+- Invalidate reports and playback after edits so old answers cannot be mistaken for current results.
+- Expanded the frozen Windows executable self-test to exercise both new calculators.
+- Updated development-only pytest to 9.0.3 for its temporary-directory security fixes.
+
 ## [1.1.0] - 2026-09-05
 
 ### Assignment solver and Musicianship III–IV

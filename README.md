@@ -46,7 +46,13 @@ Both are fully offline (no accounts, no telemetry) and ship with `.sha256` check
 | 🎨 **Make it yours** | Dark, light, high-contrast, and sepia themes; accent colors; UI scaling; staff size, notehead style, and note-name labels — all live, all remembered. |
 | 🔊 **Instant, realistic audio** | Starts on a built-in synth in milliseconds, hot-upgrades to a bundled FluidSynth SoundFont in the background. Ten instruments to choose from. |
 
-## 🆕 What's new in 1.1
+## 🆕 What's new in 1.2
+
+- **Reference → Analyze notes:** enter 1–64 freely spelled pitches, including extended chords or incomplete fragments. Inspect frequencies, directed adjacent intervals, the lowest supplied note and a possible Roman-numeral interpretation in your chosen major/minor key. Hear the supplied pitches and copy the report. Musical context can change the interpretation; this is not an automatic proof of harmonic function.
+- **Reference → Rhythm & meter:** check exact per-bar duration totals with notes, rests, one or two dots, and triplets. For example, `t(e) t(e) t(e) q h` fills 4/4; `e e e e e e` fills 6/8. The calculator explains simple versus compound pulse grouping and reports missing or excess duration without treating an intentional pickup as inherently wrong.
+- **Verified Windows startup:** release builds run the real packaged app through startup, its main screens, the solver, both calculators, MusicXML export and synthesis before publishing. This includes the v1.1 fix for conflicting ICU DLL discovery and no-console startup.
+
+### Added in 1.1
 
 - **The previously unreleased lab and bridge now have their own release version.** The August 25 implementation remained in draft PR #3 and was absent from the June v1.0.0 downloads.
 - **Assignment-first entry** — paste multiple rows of clues, add/duplicate/reorder slots, and keep every supplied pitch immutable during solving. Blank chords can use diatonic triads and sevenths in every inversion, including at the beginning of a phrase; specify chromatic alternatives explicitly.

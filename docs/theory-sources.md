@@ -39,3 +39,9 @@ partially solved examples were not treated as a universal answer key.
 A valid completion may differ from an instructor's intended answer. Select
 the instructor's constraints and rule severities, compare alternatives, and
 read diagnostics. No result is claimed for an interrupted or exhausted search.
+
+## Assignment calculators (v1.2)
+
+- [Open Music Theory: rhythmic values](https://open-musictheory.github.io/docs/fundamentals/rhythmic-values/) supports dot arithmetic; each successive dot adds half the preceding addition. The calculator measures durations only and does not validate ties between pitches.
+- [Open Music Theory: compound meters](https://viva.pressbooks.pub/openmusictheory/chapter/compound-meters-and-time-signatures/) explains three-part beat divisions and compound duple/triple/quadruple grouping. The calculator distinguishes bar length from perceived pulse, and leaves irregular grouping to musical context.
+- Note analysis preserves spelling and reports a possible key-dependent music21 interpretation, not a unique harmonic function. A fragment cannot establish missing chord members or voice-leading.

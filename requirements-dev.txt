@@ -1,4 +1,4 @@
 # Development, test, and packaging tools (not needed to run the app).
-pytest==8.4.2
+pytest==9.0.3
 ruff==0.14.4
 pyinstaller==6.16.0

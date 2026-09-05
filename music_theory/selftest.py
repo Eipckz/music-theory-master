@@ -37,6 +37,14 @@ def run_self_test(report_path: str) -> int:
                 window.go_to(name)
                 app.processEvents()
             result["checks"].append("Qt startup and main screens")
+            from .ui.screens.workbench import Workbench
+            note_tool = Workbench(ctx)
+            rhythm_tool = Workbench(ctx, rhythm=True)
+            if "V7 in C major" not in note_tool.report.toPlainText() or "complete" not in rhythm_tool.report.toPlainText():
+                raise RuntimeError("Assignment calculators failed their startup examples")
+            note_tool.close()
+            rhythm_tool.close()
+            result["checks"].append("Note analysis and exact rhythm calculator")
             from .theory.part_writing.harmony import normalize_constraint
             normalize_constraint(HarmonyConstraint(chord_symbol="C9"), "C", "major")
             p = PartWritingProblem(slots=[HarmonySlot(HarmonyConstraint(chord_symbol="C9"))])
