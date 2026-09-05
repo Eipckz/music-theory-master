@@ -133,6 +133,7 @@ class ExercisePlayer(QWidget):
                      on_next: Callable = None, badge: str = "",
                      show_next: bool = True, show_feedback: bool = True) -> None:
         self.ex = ex
+        self.last_response = None
         self._on_answer = on_answer
         self._on_next = on_next
         self._show_next = show_next
@@ -243,7 +244,7 @@ class ExercisePlayer(QWidget):
         for i, choice in enumerate(self.ex.choices):
             # number prefix surfaces the existing 1-9 shortcuts; grading uses
             # the stored value, never the display text
-            text = f"{i + 1}.   {choice}" if i < 9 else str(choice)
+            text = (f"{i + 1}.   {choice}" if i < 9 else str(choice)).replace("&", "&&")
             b = QPushButton(text)
             b.setObjectName("Choice")
             b.setProperty("choiceValue", str(choice))
@@ -543,6 +544,8 @@ class ExercisePlayer(QWidget):
         if self._answered or self.ex is None:
             return
         self._answered = True
+        import copy
+        self.last_response = copy.deepcopy(response)
         self.hint_btn.hide()
         correct = self.ex.grade(response)
         elapsed_ms = int((time.time() - self._t0) * 1000)

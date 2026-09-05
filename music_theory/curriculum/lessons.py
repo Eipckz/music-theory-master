@@ -745,6 +745,35 @@ LESSONS.update({
     ],
 })
 
+LESSONS.update({
+    "jazz.progressions": [
+        _P("A familiar tonal path", "Jazz ii–V–I moves from predominant to dominant to tonic. In C major: Dm7–G7–Cmaj7. Spell the chords before selecting extensions.", play=_chords([[50, 53, 57, 60], [43, 47, 50, 53], [48, 52, 55, 59]])),
+        _P("Minor-key choices", "In C minor a common path is Dø7–G7–Cm. Dø7 contains D–F–Ab–C; G7 contains the raised leading tone B. The tonic can use a minor sixth, minor seventh or major seventh according to style. This app's basic minor progression uses Cm7; it is one vocabulary choice."),
+        _P("Practice", "Find ii, V and I in several keys. Hear the root motion, then sing thirds and sevenths. The Studio jazz page lets you compare full chords and shell voicings."),
+    ],
+    "jazz.guides": [
+        _P("Third and seventh", "The third and seventh are guide tones: they strongly identify chord quality and suggest voice-leading. Dm7 has F and C; G7 has B and F; Cmaj7 has E and B.", play=_chords([[53, 60], [53, 59], [52, 59]])),
+        _P("Shells leave space", "A root-position shell contains root, third and seventh. A bassist can supply the root while a pianist plays guides. An omitted fifth is common; altered fifths may need to be retained to communicate a particular sonority."),
+        _P("Connect voices", "Try F–F–E in one voice and C–B–B in another over D–G–C bass. This yields small guide-tone motions. Jazz voicing choices and classical SATB doubling rules serve different textures."),
+    ],
+    "jazz.substitution": [
+        _P("A dominant a tritone away", "In C, Db7 can substitute for G7 before C. This yields Dm7–Db7–Cmaj7 and a descending chromatic bass. It does not mean every dominant is interchangeable in every melody."),
+        _P("Shared sound, changed spelling", "G7's guide tones are B and F. Db7's are F and Cb; Cb sounds like B in equal temperament. Their third/seventh roles switch. Keep the spelling appropriate to the written chord.", play=_chords([[43, 47, 53], [37, 47, 53], [36, 47, 52]])),
+        _P("Check the melody", "A substitution changes available tensions and can clash with a fixed melodic note. Compare both versions, state the destination tonic, and justify the choice from the actual passage."),
+    ],
+    "aural.jazz": [
+        _P("Follow the bass", "Listen first for the ii–V–I root motion. Then compare ii–bII–I, where the bass descends chromatically. Guide tones alone may be enharmonically shared, so attend to bass context."),
+        _P("Hear the same destination", "Compare these two paths in C. Both arrive on tonic; the middle bass changes the route.", play=_chords([[38, 53, 60], [43, 53, 59], [36, 52, 59], [38, 53, 60], [37, 53, 59], [36, 52, 59]])),
+        _P("Replay deliberately", "Listen once for bass, once for upper voices, then answer. Replay is unlimited. Repeat the exercise in several keys to avoid identifying only a memorized pitch register."),
+    ],
+    "piano.jazz": [
+        _P("Build a shell", "Find the root, third and seventh of the written chord. Play those pitch classes on the on-screen or MIDI piano; this drill accepts any octave."),
+        _P("Then choose a register", "After you can name the tones, place the root low and keep thirds/sevenths near the middle of the keyboard. The Studio example chooses nearby guide tones, but there are multiple valid voicings."),
+        _P("Add rhythm yourself", "Move through ii–V–I slowly, then try an even pulse or a short comping rhythm. This pitch-class drill does not grade groove, pedal or physical fingering."),
+    ],
+})
+
+
 def lesson_for(skill_id: str) -> list[LessonPage]:
     """Pages for a skill (empty if the skill has no lesson)."""
     return LESSONS.get(skill_id, [])

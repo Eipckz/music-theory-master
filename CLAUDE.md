@@ -14,6 +14,14 @@ Duolingo-style: adaptive placement → teach-then-drill lessons → spaced revie
 
 ## Architecture (the 4 layers)
 
+### v1.4 musicianship studio
+- `theory/score_study.py` imports bounded local MusicXML/MXL with hardened XML parsing, retains written pitch and timing, selects passages and reviews independent monophonic lines. Do not imply universal counterpoint validity or full notation playback.
+- `audio/pitch_tracking.py` analyzes single-voice WAV/captured samples; `audio/recording.py` opens an input stream only after an explicit Record action. Close it on navigation. Missing/unvoiced recording time is missing evidence, never a successful note.
+- `theory/jazz.py`, `exercises/jazz_gen.py` and five curriculum lessons connect ii–V–I, guides, substitutions, listening and keyboard work. Preserve enharmonic spelling while explaining pitch-class equivalence.
+- `exercises/assignments.py` defines bounded offline assignment/result exchange. Regrade responses against the original assignment; do not trust claimed scores or import attempts into course progress. Files contain the answer key and do not establish identity.
+- `ui/screens/studio.py` connects the four tabs, background pitch analysis and shared exercise player. Clear pending results on edits and close audio on navigation. Keep controls usable at 940×620.
+- Focused tests: `test_score_study.py`, `test_pitch_tracking.py`, `test_jazz.py`, `test_assignments.py`, `test_studio_gui.py`; packaged `selftest.py` also imports scores, reads WAV and regrades assignment files.
+
 ### v1.3 practice tools and assessment
 - `theory/practice_tools.py` holds transposition, reverse scale search, metronome events/tap tempo, fretboard and worksheet calculations; `ui/screens/practice_tools.py` exposes all five under Tools.
 - Placement's UI enables comprehensive breadth checks by default; the core API retains a short-mode default for compatibility. Results are provisional and retain per-item type/difficulty evidence. Never substitute an unrelated fallback or save an incomplete assessment.

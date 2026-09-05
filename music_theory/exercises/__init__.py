@@ -22,6 +22,7 @@ from . import posttonal_gen  # noqa: F401,E402
 from . import pregraduate_gen  # noqa: F401,E402
 from . import part_writing_gen  # noqa: F401,E402
 from . import undergraduate_gen  # noqa: F401,E402
+from . import jazz_gen  # noqa: F401,E402
 
 __all__ = [
     "Exercise", "InputMode", "render_play", "normalize_answer",

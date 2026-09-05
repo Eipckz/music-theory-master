@@ -19,6 +19,9 @@ Map the user's requested outcome to the current screens, registered exercise typ
 - Placement must credit the question actually presented. Never label a fallback item as advanced or infer full topic mastery from a tiny sample. Keep incomplete results unsaved and preserve earned progress on retakes. Test high, low and guessing response patterns as well as uneven topic knowledge.
 - Qt slots use `errors.guard` or explicit input-error handling. Invalidate outputs and disable playback/export when inputs change. Stop timed audio on navigation. Test screen layouts and keyboard access at the app's supported minimum size as well as normal laptop size.
 - Keep runtime offline. Persist user data through existing local storage conventions; importing/exporting exercises must not fabricate graded attempts. Separate printable questions from answers. Preserve theme and accessible-name behavior.
+- Studio imports must stay local, bounded and hardened against XML entities/archive expansion. Written pitches and selected timing are distinct from full score performance. Do not claim complete counterpoint analysis from parallel/leap checks.
+- Microphone input requires explicit recording, bounded duration and cleanup on navigation. Verify WAV paths and simulated input cleanup without recording ambient audio implicitly. Count missing/unvoiced time as missing evidence and distinguish pitch estimates from vocal-technique assessment.
+- Offline assignment files include answer keys: validate nested music/audio payloads, regrade submitted responses against the original file, and never trust a claimed score or fabricate course mastery.
 
 ## Validate the actual product
 

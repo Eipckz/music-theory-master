@@ -264,4 +264,17 @@ _SKILLS: list[Skill] = [
        description="Foreground/middleground reduction and the Ursatz (guided)."),
 ]
 
+_SKILLS += [
+    _S("jazz.progressions", "Jazz ii–V–I", "theory", "Advanced", ("jazz_ii_v_i",),
+       ("harmony.roman_numerals", "chords.seventh_quality"), (3., 8.)),
+    _S("jazz.guides", "Guide Tones & Shell Voicings", "theory", "Advanced", ("jazz_guide_tones",),
+       ("jazz.progressions",), (3., 8.)),
+    _S("jazz.substitution", "Tritone Substitution", "theory", "Advanced", ("jazz_tritone_sub",),
+       ("jazz.guides", "tonal.tonicization"), (4., 9.)),
+    _S("aural.jazz", "Hear Jazz Bass and Guide Tones", "aural", "Advanced", ("jazz_progression_ear",),
+       ("jazz.guides", "aural.chord_quality"), (3., 8.)),
+    _S("piano.jazz", "Play Jazz Shells", "piano", "Advanced", ("play_jazz_shell",),
+       ("jazz.guides", "piano.chords"), (3., 8.)),
+]
+
 CURRICULUM = Curriculum(_SKILLS)

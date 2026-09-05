@@ -30,7 +30,7 @@ Primary product pages checked September 5, 2026. Listed gaps mean absent from ou
 4. **Custom printable worksheets.** [musictheory.net customization](https://www.musictheory.net/faq) and [EarMaster customized exercises](https://www.earmaster.com/products/ear-training-sight-singing/earmaster-cloud-edition.html) offer focused practice. Add reproducible, selectable written question sets with a separately exported answer key. Do not put audio-only questions on paper or award XP for ungraded work.
 5. **Fretboard explorer.** [musictheory.net exercises](https://www.musictheory.net/exercises) includes fretboard notes, intervals, scales and chords. Add a clickable map with guitar/bass/ukulele/custom tuning, pitch-class highlights and note audition. This is an explorer, not automated fingering advice.
 
-Other gaps remain: microphone-assessed singing, score-imported aural lessons, teacher cloud assignment collection, richer jazz/improvisation courses, and score-wide contrapuntal analysis. These need separate development; they are not represented as implemented by the five additions.
+At this v1.3 audit, remaining gaps included microphone feedback, imported-score practice, teacher assignments, jazz and score-wide review. **v1.4 adds bounded implementations of these workflows**, described in [Studio expansion](studio-expansion.md). Remaining scope includes cloud collection/class management, human-performance calibration, automatic rhythm alignment, improvisation assessment and comprehensive contrapuntal/harmonic analysis.
 
 ## Acceptance scope
 

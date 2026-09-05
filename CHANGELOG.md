@@ -4,6 +4,16 @@ All notable changes to Music Theory Master are documented here.
 Versioning follows [SemVer](https://semver.org); releases are tagged `vX.Y.Z`
 and built automatically by the release workflow.
 
+## [1.4.0] - 2026-09-05
+
+- Added the Musicianship Studio: local MusicXML/MXL import, part/voice/measure selection, timed passage playback and pitch-entry practice.
+- Added independent-line score review for located parallel perfect intervals and user-configurable melodic leaps, with explicit exclusions and limits.
+- Added explicit microphone recording and WAV import, local monophonic pitch traces/intonation statistics and timed score-melody comparison. Close inputs on navigation and count missing recording time as missing evidence.
+- Added a spelled jazz progression/shell player plus five lessons and written, aural and piano exercise families; the app now has 56 curriculum skills and 59 exercise types.
+- Added offline assignment creation/completion and shareable result files that can be independently regraded against the original assignment, without altering course XP.
+- Refreshed the complete README and real-app screenshots, documented formats and boundaries, and extended frozen-app self-tests through MusicXML import, WAV analysis and assignment exchange.
+- Preserved the Windows Qt DLL discovery fix; wrapped long Studio action lists for small screens and displayed ampersands literally in answer choices.
+
 ## [1.3.0] - 2026-09-05
 
 - Added five Tools workspaces: spelled transposition with instrument presets/MusicXML; reverse scale search with explicit missing/outside tones; metronome with accent groups, subdivisions and tap tempo; reproducible printable worksheets and separate answer keys; clickable custom-tuning/capo fretboard.

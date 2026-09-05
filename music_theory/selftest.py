@@ -33,7 +33,7 @@ def run_self_test(report_path: str) -> int:
             apply_theme(app, ctx.settings)
             window = MainWindow(ctx)
             window.show()
-            for name in ("part_writing", "reference", "piano", "session", "tools", "placement"):
+            for name in ("part_writing", "reference", "piano", "session", "tools", "placement", "studio"):
                 window.go_to(name)
                 app.processEvents()
             result["checks"].append("Qt startup and main screens")
@@ -57,6 +57,35 @@ def run_self_test(report_path: str) -> int:
                 raise RuntimeError("New practice tools did not produce startup examples")
             from .theory.practice_tools import export_melody, metronome_events, worksheet_html
             export_melody(Path(profile) / "transpose.musicxml", transpose_tool.result)
+            studio = window.screens["studio"]
+            studio.score.load(Path(profile) / "transpose.musicxml")
+            if studio.score.score is None:
+                raise RuntimeError("Bundled MusicXML import failed")
+            studio.score.practice()
+            studio.score.send_singing()
+            studio.score.review()
+            for i in range(studio.tabs.count()):
+                studio.tabs.setCurrentIndex(i)
+                app.processEvents()
+            if not studio.jazz.chords or not studio.singing.expected:
+                raise RuntimeError("Studio score and jazz workflows failed")
+            from .exercises.assignments import create_assignment, save_json, load_assignment, make_result, check_result
+            assignment = create_assignment("Packaged practice", ["jazz_guide_tones"], 5, 3, 42)
+            assignment_path = Path(profile) / "assignment.json"
+            save_json(assignment_path, assignment)
+            loaded, exercises = load_assignment(assignment_path)
+            response = make_result(loaded, "Self-test", [e.answer for e in exercises])
+            if check_result(loaded, response)["correct"] != 3:
+                raise RuntimeError("Packaged assignment regrade failed")
+            import numpy as np
+            from .audio.pitch_tracking import track_pitch, intonation_report, load_wav
+            from scipy.io import wavfile
+            wav_path = Path(profile) / "target.wav"
+            wavfile.write(wav_path, 16000, (.3 * np.sin(2 * np.pi * 440 * np.arange(16000) / 16000)).astype(np.float32))
+            recording, rate = load_wav(wav_path)
+            if intonation_report(track_pitch(recording, rate), 69)["within_percent"] < 95:
+                raise RuntimeError("Packaged WAV pitch analysis failed")
+            result["checks"].append("Studio MusicXML import/practice/review, jazz, assignment round trip and WAV pitch tracking")
             if len(metronome_events(120, "2+3", 3, 2)) != 30:
                 raise RuntimeError("Metronome event check failed")
             (Path(profile) / "worksheet.html").write_text(worksheet_html(worksheet_tool.items), encoding="utf-8")

@@ -9,11 +9,11 @@
 [![Release](https://img.shields.io/github/v/release/Eipckz/music-theory-master?label=Windows%20download&color=3ec46d)](https://github.com/Eipckz/music-theory-master/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An offline desktop workspace for written theory, listening, keyboard practice, SATB assignments and everyday music calculations. The path runs from fundamentals through Musicianship III–IV to introductory post-tonal work and guided advanced study.
+An offline desktop workspace for written theory, listening, keyboard practice, SATB assignments, imported scores, singing feedback, jazz and everyday music calculations. The path runs from fundamentals through Musicianship III–IV to introductory post-tonal work and guided advanced study.
 
 [Download](https://github.com/Eipckz/music-theory-master/releases/latest) · [Start here](#start-here) · [Every workspace](#every-workspace) · [Full curriculum](#full-curriculum) · [Build and contribute](#build-and-contribute)
 
-<img src="docs/media/screenshot-dashboard.png" alt="Music Theory Master dashboard" width="850">
+<img src="docs/media/screenshot-home-v1.4.png" alt="Music Theory Master dashboard" width="850">
 
 </div>
 
@@ -24,6 +24,7 @@ An offline desktop workspace for written theory, listening, keyboard practice, S
 | New to theory | Skip placement and begin **Learn**. Read a short lesson, hear examples, then practice. |
 | Returning learner | Take **Placement** with breadth checks. Choose theory, aural and/or piano; results suggest a provisional starting point and review topics. |
 | Working on an assignment | Open **Part Writing** for constrained SATB; use **Reference** for note/rhythm analysis and **Tools** for transposition, scales and worksheets. |
+| Studying a score or preparing a class assignment | Open **Studio**: import MusicXML, practice a selected voice, compare a recording, study jazz or exchange an offline assignment. |
 | Practicing an instrument | Use **Piano**, MIDI input, **Tools → Metronome**, or **Tools → Fretboard**. |
 | Preparing for advanced classes | Follow the tonal III–IV sequence before the **Pre-Graduate** bridge; guided topics are labeled separately from graded drills. |
 
@@ -51,11 +52,46 @@ Runtime is offline: no account, telemetry or cloud service. Source tests also ru
 | **Piano** | Play the on-screen or MIDI keyboard, audition scales and triads/sevenths; realize pitch-class collections, ordered row segments and P/L/R transformations. |
 | **Reference** | Circle of fifths, staff/keyboard explorer, free note analysis, exact rhythm/meter calculator, post-tonal clock/set/matrix/P-L-R workbench and searchable playable glossary. |
 | **Tools** | Spelled transposition and instrument conversion, reverse scale finder, accented/subdivided metronome and tap tempo, printable worksheets/answer keys, custom-tuning fretboard. |
+| **Studio** | MusicXML/MXL passages, pitch-entry practice, independent-line voice-leading review, microphone/WAV pitch feedback, jazz progression player and offline assignment/result exchange. |
 | **Progress** | Every skill's level, unlock state, mastery estimate, attempts and guided status, plus overall accuracy and completion counts. |
 | **Awards** | Achievement gallery, earned milestones and dismissible celebrations; reduce motion is available. |
 | **Placement** | Selectable domains, adaptive staircase, confirmation, optional breadth checks, sound check, explicit unknown response, cancel without saving, evidence-based provisional results and safe retakes. |
 | **Settings** | Profile name; audio backend, SoundFont, instrument, output device, volume and tempo; MIDI device and keyboard note labels; theme, accent, scaling and staff appearance; progress reset with confirmation. |
 | **About** | Version, attribution, offline status and application information. |
+
+## Musicianship studio — new in v1.4
+
+### Score practice and voice-leading review
+
+![Imported score with located parallel-fifth feedback](docs/media/screenshot-score-v1.4.png)
+
+Open a local `.musicxml`, `.xml` or compressed `.mxl` score, select parts, a voice and an inclusive measure range, then set quarter-note BPM. **Play passage** retains note lengths, ties and internal rests and begins at the first selected pitched attack. **Practice pitches** turns a monophonic selection of up to 32 notes into an ordered pitch-entry exercise; **Send to singing** transfers up to 256 timed target notes for recording comparison. Imported practice does not alter course XP or mastery. Staff previews show supplied pitches, not a full engraved score.
+
+**Review voice leading** examines independent monophonic lines across the selected score, with measure/offset locations and actual note pairs. It flags parallel perfect fifths, octaves/unisons and contiguous melodic leaps exceeding your chosen threshold. Polyphonic or overlapping lines are explicitly excluded. Fourths are not flagged. The review does not assess all counterpoint, nonchord-tone treatment, harmonic function or style-specific conventions; use the SATB lab for its more detailed four-part rule profiles.
+
+Import limits: 8 MB per file, 1–32 parts and 6,000 written note/rest elements. Compressed archives have additional member/size limits and are read without extraction. External entities are rejected. Playback is limited to three minutes, uses written pitches and constant tempo, and does not perform repeat expansion, instrument transposition, ornaments, grace notes or percussion. Tied notes are included according to their starting measure. Microtones and accidentals beyond doubles are rejected.
+
+### Singing and instrumental intonation
+
+![Local pitch feedback from a constructed WAV test tone](docs/media/screenshot-singing-v1.4.png)
+
+Choose a target note, input device and 1–30 seconds, then press **Record**. **Stop** ends capture and analyzes it; navigating away closes the microphone and discards an active capture. **Open WAV** works without a microphone. Nothing is uploaded or automatically saved. Use headphones when hearing the reference so speaker playback does not enter the recording.
+
+The pitch trace and report show voiced frames, median sharp/flat offset, pitch spread and the proportion within a 5–100-cent tolerance. Imported melodies are compared note by note with a manual alignment offset of ±10 seconds; missing/unvoiced recording time is not a match. There is no recorded count-in or automatic rhythm grade. **Clear score melody** returns to target-note practice. Recording comparison assumes A4 = 440 Hz and estimates one voice/instrument, roughly 60–1,000 Hz. WAV input accepts 8–192 kHz and at most 30 seconds; multichannel audio is averaged to mono. Chords, breath and background noise can confuse pitch estimation. This is practice feedback, not a grade for vocal technique or tone quality. The screenshot uses a synthesized test tone, not a claimed human performance evaluation.
+
+### Jazz harmony, listening and keyboard study
+
+![Spelled jazz progression and shell voicings](docs/media/screenshot-jazz-v1.4.png)
+
+Explore major/minor ii–V–I in twelve tonic choices, replace V7 with its tritone substitute, compare full chords with root/third/seventh shells, inspect spelled guide tones and hear the progression at your tempo. Five prerequisite-connected **Learn** skills and **Practice** exercises cover chord functions, third/seventh identification, substitutions, hearing standard versus substituted bass paths and playing shell pitch classes. Minor examples use i7 as one tonic vocabulary choice; lessons discuss alternatives. This does not grade improvised solos, comping rhythm or physical fingering.
+
+### Offline teacher assignments
+
+![Completing a shareable jazz assignment in the app](docs/media/screenshot-assignments-v1.4.png)
+
+Create 1–50 questions from one of 23 supported written, listening or keyboard topics at difficulty 0–10 with a reproducible seed. **Save assignment** exports a JSON file; another user opens it, presses **Start / restart**, answers the questions and exports a result. Load the original assignment and use **Check result file** to regrade the submitted responses independently of the file's claimed score. No course progress is fabricated.
+
+Assignment and result files are limited to 2 MB and validated on import. They include the answer key and are intended for shareable practice: identity and testing conditions are not verified. This release keeps assignment exchange offline; there is no teacher account, class roster, automatic submission or cloud collection.
 
 ## Five practice tools
 
@@ -138,6 +174,8 @@ The sequence is **Beginner → Early → Intermediate → Advanced → Pre-Gradu
 
 For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**, while its **seventh F normally falls to E**. The lessons explain local-key context and classroom exceptions. Post-tonal study starts by distinguishing key-relative scale degrees from fixed pitch classes before introducing sets, rows and P/L/R. Guided topics offer lessons and self-check, not automatic grading of full compositions or reductions.
 
+The current app contains **56 curriculum skills** and **59 selectable exercise families**.
+
 <details>
 <summary>Beginner</summary>
 
@@ -202,6 +240,11 @@ For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**
 | Chromatic Harmony | Theory | Roman-Numeral Analysis |
 | Four-Part Writing | Theory | Four-Part Writing |
 | Form & Phrase Structure | Theory | Guided self-study |
+| Jazz ii–V–I | Theory | Jazz ii–V–I chord functions |
+| Guide Tones & Shell Voicings | Theory | Jazz guide tones: thirds and sevenths |
+| Tritone Substitution | Theory | Tritone substitutions |
+| Hear Jazz Bass and Guide Tones | Aural | Hear standard and substituted ii–V–I |
+| Play Jazz Shells | Piano | Play root, third and seventh |
 
 </details>
 
@@ -237,7 +280,6 @@ For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**
 
 </details>
 
-
 ### Every selectable exercise
 
 <details>
@@ -254,6 +296,9 @@ For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**
 | Interval Construction | `interval_construction` |
 | Interval Identification | `interval_identification` |
 | Build Chords in Inversion | `inversion_build` |
+| Jazz guide tones: thirds and sevenths | `jazz_guide_tones` |
+| Jazz ii–V–I chord functions | `jazz_ii_v_i` |
+| Tritone substitutions | `jazz_tritone_sub` |
 | Build Key Signatures | `key_signature_build` |
 | Key Signatures | `key_signature_identification` |
 | Modes: characteristic scale degrees | `modal_degree` |
@@ -292,6 +337,7 @@ For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**
 | Error Detection | `error_detection` |
 | Harmonic Dictation | `harmonic_dictation` |
 | Interval Recognition (Ear) | `interval_recognition` |
+| Hear standard and substituted ii–V–I | `jazz_progression_ear` |
 | Melodic Dictation | `melodic_dictation` |
 | Multi-Part Dictation | `multipart_dictation` |
 | Hear Pitch-Set Cardinality | `pcset_cardinality_ear` |
@@ -309,6 +355,7 @@ For example, in C major, G7 = G–B–D–F: its **third B normally rises to C**
 | Exercise | Registry ID |
 |---|---|
 | Play an Interval | `play_interval` |
+| Play root, third and seventh | `play_jazz_shell` |
 | Play a Note | `play_note` |
 | Play a Pitch-Class Set | `play_pitch_class_set` |
 | Play a P/L/R Transformation | `play_plr_transform` |
@@ -354,11 +401,13 @@ Earlier-version recordings illustrate the established workflows; the feature gui
 | SATB assignments | User-saved JSON; solved scores export to MusicXML. |
 | Transposed melody | User-selected MusicXML file; quarter-note durations. |
 | Worksheets | Separate local HTML question and answer files; no external fonts or scripts. |
+| Imported scores / recordings | Local MusicXML/MXL and WAV; microphone samples stay in memory and are not automatically saved. |
+| Teacher practice exchange | Local `.mtm-assignment.json` and `.mtm-result.json` files, with an answer key and independently regradable responses. |
 | Reports | Copy note/rhythm analysis to the clipboard. |
 
 Reset in Settings deletes learning progress after confirmation; it is not a backup tool. Runtime makes no network calls and requires no account. Build-time audio downloads are version-pinned and hash-checked. SQL uses parameters; imported assignments are validated. See [SECURITY.md](SECURITY.md).
 
-The app is not a general score editor, universal harmony oracle, microphone singing assessor, teacher cloud service or replacement for your instructor. SATB is four-part and has explicit search limits; note collections do not prove tonal function; guided advanced topics do not imply doctoral-level automated assessment. The [audit and competitor comparison](docs/expansion-audit.md) records remaining gaps and the five additions' rationale.
+The app is not a general score editor, universal harmony oracle, teacher cloud service or replacement for your instructor. SATB is four-part and has explicit search limits; note collections do not prove tonal function; guided advanced topics do not imply doctoral-level automated assessment. The [audit and competitor comparison](docs/expansion-audit.md) records earlier coverage; the [v1.4 Studio expansion](docs/studio-expansion.md) documents the new workflows, sources and validation.
 
 ## Build and contribute
 
@@ -380,15 +429,15 @@ python build/fetch_audio_assets.py  # optional source-run SoundFont; hash-verifi
 ./build.ps1                      # Windows portable exe + checksum + actual exe test
 ```
 
-CI tests Windows/Linux on Python 3.12/3.13. Tests cover theory, generator self-grading, placement simulations, SATB constraints and exports, tool calculations and GUI behavior, storage, rendering, themes and offline operation. The Windows build runs `--self-test` against the actual frozen executable with an isolated profile. Tagged `vX.Y.Z` builds add an Inno Setup installer and publish both artifacts and checksums.
+CI tests Windows/Linux on Python 3.12/3.13. Tests cover theory, generator self-grading, placement simulations, SATB constraints and exports, tool calculations, MusicXML/MXL import safety, WAV pitch estimates, assignment round trips and GUI behavior, storage, rendering, themes and offline operation. The Windows build runs `--self-test` against the actual frozen executable with an isolated profile. Tagged `vX.Y.Z` builds add an Inno Setup installer and publish both artifacts and checksums.
 
 | Source area | Responsibility |
 |---|---|
 | `theory/` | Spelled musical math, SATB search/rules, sets/rows/P-L-R and practice calculators. |
-| `exercises/` | Registered generators and answer/input contracts. |
+| `exercises/` | Registered generators, answer/input contracts and offline assignments/results. |
 | `curriculum/` | Skill prerequisites, lessons and the course companion. |
 | `adaptive/` | Placement, mastery and review scheduling. |
-| `audio/` | Synth, SoundFont rendering, event timing and MIDI. |
+| `audio/` | Synth, SoundFont rendering, event timing, MIDI, explicit microphone capture and monophonic pitch analysis. |
 | `ui/` | Qt screens, exercise player, notation, piano and theme/accessibility behavior. |
 | `storage/` | Local progress and settings. |
 
