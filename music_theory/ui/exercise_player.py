@@ -73,6 +73,9 @@ class ExercisePlayer(QWidget):
         self._root.setSpacing(14)
         self._build_static()
         self._install_shortcuts()
+        self._feedback_scroll_timer = QTimer(self)
+        self._feedback_scroll_timer.setSingleShot(True)
+        self._feedback_scroll_timer.timeout.connect(self._scroll_to_feedback)
 
     def _install_shortcuts(self) -> None:
         ctx = Qt.ShortcutContext.WidgetWithChildrenShortcut
@@ -575,7 +578,7 @@ class ExercisePlayer(QWidget):
         style.unpolish(self.feedback_panel)
         style.polish(self.feedback_panel)
         self.feedback_panel.show()
-        QTimer.singleShot(0, self._scroll_to_feedback)
+        self._feedback_scroll_timer.start(0)
         if hasattr(self, "_choice_btns"):
             for b in self._choice_btns:
                 b.setEnabled(False)
@@ -618,7 +621,7 @@ class ExercisePlayer(QWidget):
         style.unpolish(self.feedback_panel)
         style.polish(self.feedback_panel)
         self.feedback_panel.show()
-        QTimer.singleShot(0, self._scroll_to_feedback)
+        self._feedback_scroll_timer.start(0)
         # reveal
         rev = self.ex.reveal or {}
         if "staff" in rev:
