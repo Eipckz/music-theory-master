@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QStackedWidget,
     QVBoxLayout, QWidget, QScrollArea,
@@ -51,7 +52,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.ctx = ctx
         self.setWindowTitle(__app_name__)
-        self.resize(1140, 740)
+        self.resize(1320, 900)
         self.setMinimumSize(940, 620)
 
         central = QWidget()
@@ -121,7 +122,13 @@ class MainWindow(QMainWindow):
         lay = QVBoxLayout(bar)
         lay.setContentsMargins(10, 14, 10, 14)
         lay.setSpacing(4)
-        brand = QLabel("\u266B  Music Theory\nMaster")
+        from ..paths import resources_dir
+        mark = QLabel()
+        mark.setPixmap(QPixmap(str(resources_dir() / "icons" / "conservatory.svg")).scaled(
+            42, 42, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        mark.setContentsMargins(14, 0, 0, 0)
+        lay.addWidget(mark)
+        brand = QLabel("Music Theory\nMaster")
         brand.setWordWrap(True)
         brand.setObjectName("Brand")
         lay.addWidget(brand)
@@ -131,14 +138,11 @@ class MainWindow(QMainWindow):
         self.nav_group.setExclusive(True)
         self._nav_buttons: dict[str, QPushButton] = {}
         for label, name in _NAV:
-            if name == "stats":
-                # divider between daily actions and meta screens
-                div = QFrame()
-                div.setObjectName("NavDivider")
-                div.setFixedHeight(1)
-                lay.addSpacing(6)
-                lay.addWidget(div)
-                lay.addSpacing(6)
+            if name in ("dashboard", "part_writing", "stats", "settings"):
+                section = QLabel({"dashboard": "YOUR PRACTICE", "part_writing": "THE WORKSPACE",
+                                  "stats": "YOUR JOURNEY", "settings": "PREFERENCES"}[name])
+                section.setObjectName("NavSection")
+                lay.addWidget(section)
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.clicked.connect(lambda _=False, n=name: self.go_to(n))

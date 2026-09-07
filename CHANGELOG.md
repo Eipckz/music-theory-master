@@ -1,5 +1,17 @@
 # Changelog
 
+
+## Unreleased — Modern Conservatory
+
+- Introduce an ink-green/mint/ivory visual system, native staff-line monogram, editorial headings, grouped navigation and a scrollable Home dashboard.
+- Reorganize Part Writing around direct score entry and explicit voice/accidental selectors. Preserve the piano, table, practice/search settings, file actions, explanations and course guides in named panels.
+- Render partial SATB clues immediately and map input across every assignment column. Add hover previews, in-key accidentals, explicit naturals, right-click/Delete removal and keyboard column navigation.
+- Normalize clef rendering independently of font state; separate clefs, key signatures and time signatures; correct bass-dot alignment; enlarge Roman labels and keep note colors readable on manuscript paper.
+- Audition entered notes, play partial scores/voices, show actionable conflicts beside the score, and invalidate stale feedback after edits.
+- Fix Piano scale/chord playback for natural roots; add a notation preview and constrain keyboard height in both piano modes.
+- Document the generated design reference, native Computer Use review generations, actual screenshots and focused regression coverage. Correct the old README's unsupported undo/redo claim.
+
+
 All notable changes to Music Theory Master are documented here.
 Versioning follows [SemVer](https://semver.org); releases are tagged `vX.Y.Z`
 and built automatically by the release workflow.

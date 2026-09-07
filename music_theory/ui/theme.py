@@ -28,33 +28,33 @@ from __future__ import annotations
 # the others override the same keys so the QSS template needs no conditionals.
 
 _DARK = {
-    "BG": "#15171c",
-    "BG_SIDEBAR": "#0f1115",
-    "SURFACE": "#1a1d23",        # cards
-    "SURFACE_2": "#1d2128",      # inputs, choice buttons
-    "SURFACE_3": "#262b34",      # secondary buttons
-    "BORDER": "#2c323c",
-    "TEXT": "#e7e9ee",
-    "TEXT_MUTED": "#9aa3b2",
-    "ACCENT": "#5b8def",
-    "GOOD": "#3ec46d",
+    "BG": "#101f22",
+    "BG_SIDEBAR": "#0b181b",
+    "SURFACE": "#182d30",        # cards
+    "SURFACE_2": "#20363a",      # inputs, choice buttons
+    "SURFACE_3": "#294247",      # secondary buttons
+    "BORDER": "#365156",
+    "TEXT": "#f6f1e5",
+    "TEXT_MUTED": "#afc3c2",
+    "ACCENT": "#a6e3c5",
+    "GOOD": "#81cfad",
     "GOOD_BG": "#1d3528",
     "BAD": "#e2554e",
     "BAD_BG": "#3a2226",
     "WARN": "#e0a73a",
-    "FOCUS": "#e7e9ee",
-    "SIDEBAR_TEXT": "#b9bfcc",
-    "SIDEBAR_HOVER": "#1c2026",
+    "FOCUS": "#f6f1e5",
+    "SIDEBAR_TEXT": "#bfd0cd",
+    "SIDEBAR_HOVER": "#20363a",
     "SIDEBAR_TEXT_ACTIVE": "#ffffff",
     "SECONDARY_TEXT": "#d7dbe4",
-    "SECONDARY_HOVER": "#2f3540",
-    "SECONDARY_PRESSED": "#232831",
+    "SECONDARY_HOVER": "#365156",
+    "SECONDARY_PRESSED": "#20363a",
     "DANGER_HOVER": "#4a2a2e",
-    "CHOICE_CHECKED_BG": "#20283a",
+    "CHOICE_CHECKED_BG": "#2b4945",
     "DISABLED_BG": "#2a2f38",
     "DISABLED_TEXT": "#6b7280",
     "PROGRESS_BG": "#22262e",
-    "STAFF_PAPER": "#f6f3ea",    # warm card the staff is drawn on
+    "STAFF_PAPER": "#f6f1e5",    # warm card the staff is drawn on
     "STAFF_INK": "#1f2228",      # staff lines / clefs / noteheads on the paper
     "TOAST_INFO": "#2f3b52",
     "TOAST_SUCCESS": "#2f7d4f",
@@ -306,7 +306,7 @@ _QSS_TEMPLATE = """
 * {{ font-family: "Segoe UI", "Inter", sans-serif; font-size: {fs14}px; }}
 QMainWindow, QWidget {{ background: %BG%; color: %TEXT%; }}
 QLabel {{ color: %TEXT%; background: transparent; }}
-QLabel#H1 {{ font-size: {fs24}px; font-weight: 800; }}
+QLabel#H1 {{ font-family: "Georgia"; font-size: {fs26}px; font-weight: 400; }}
 QLabel#H2 {{ font-size: {fs20}px; font-weight: 800; }}
 QLabel#H3 {{ font-size: {fs16}px; font-weight: 700; }}
 QLabel#BodyLg {{ font-size: {fs16}px; }}
@@ -320,7 +320,7 @@ QLabel#AccentValue {{ color: %ACCENT_TEXT%; font-weight: 700; }}
 
 #Sidebar {{ background: %BG_SIDEBAR%; }}
 #Sidebar QPushButton {{
-    text-align: left; padding: 10px 16px; border: 2px solid transparent;
+    text-align: left; padding: 7px 14px; border: 2px solid transparent;
     border-radius: 8px; color: %SIDEBAR_TEXT%; background: transparent;
     font-size: {fs14}px;
 }}
@@ -330,7 +330,7 @@ QLabel#AccentValue {{ color: %ACCENT_TEXT%; font-weight: 700; }}
     background: %ACCENT_SOFT%; color: %SIDEBAR_TEXT_ACTIVE%; font-weight: 600;
     border-left: 3px solid %ACCENT%;
 }}
-#Brand {{ font-size: {fs18}px; font-weight: 700; color: %SIDEBAR_TEXT_ACTIVE%; padding: 14px 16px; }}
+#Brand {{ font-family: "Georgia"; font-size: {fs20}px; font-weight: 400; color: %SIDEBAR_TEXT_ACTIVE%; padding: 14px 16px; }}
 
 QPushButton {{
     background: %ACCENT%; color: %TEXT_DARK%; border: 2px solid transparent;
@@ -381,6 +381,24 @@ QTabBar::tab {{
 }}
 QTabBar::tab:selected {{ background: %SURFACE%; color: %TEXT%; border-bottom: 2px solid %ACCENT%; }}
 QTabBar::tab:hover {{ color: %TEXT%; }}
+QWidget#PanelBody {{ background: transparent; }}
+QLabel#HeroTitle {{ font-family: "Georgia"; font-size: {fs26}px; color: %TEXT%; }}
+QLabel#NavSection {{ color: %TEXT_MUTED%; font-size: {fs12}px; padding: 8px 14px 2px; letter-spacing: 1px; }}
+QPushButton#Disclosure {{ text-align: left; background: %SURFACE%; color: %SECONDARY_TEXT%; border: 1px solid %BORDER%; }}
+QPushButton#Voice {{ background: %SURFACE%; color: %TEXT%; border: 1px solid %BORDER%; }}
+QPushButton#Voice:checked {{ background: %ACCENT%; color: %TEXT_DARK%; border-color: %ACCENT%; }}
+QTableView, QTableWidget, QListWidget, QTextEdit, QTextBrowser, QPlainTextEdit {{
+    background: %SURFACE%; alternate-background-color: %SURFACE_2%; border: 1px solid %BORDER%;
+    border-radius: 8px; padding: 5px; selection-background-color: %CHOICE_CHECKED_BG%; selection-color: %TEXT%;
+}}
+QHeaderView::section {{ background: %SURFACE_2%; color: %TEXT_MUTED%; padding: 7px; border: none; }}
+QTableView {{ gridline-color: %BORDER%; }}
+QScrollBar:vertical {{ background: %BG%; width: 10px; margin: 0px; }}
+QScrollBar::handle:vertical {{ background: %BORDER%; border-radius: 5px; min-height: 28px; }}
+QScrollBar:horizontal {{ background: %BG%; height: 10px; margin: 0px; }}
+QScrollBar::handle:horizontal {{ background: %BORDER%; border-radius: 5px; min-width: 28px; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ width: 0px; height: 0px; }}
+QToolTip {{ background: %SURFACE_3%; color: %TEXT%; border: 1px solid %BORDER%; padding: 8px; }}
 QSlider::groove:horizontal {{ height: 6px; background: %BORDER%; border-radius: 3px; }}
 QSlider::handle:horizontal {{ background: %ACCENT%; width: 20px; margin: -7px 0; border-radius: 10px; }}
 QSlider:focus::handle:horizontal {{ background: %FOCUS%; }}

@@ -10,7 +10,7 @@ from ...theory.part_writing.models import Clef, Layout, Voice, VOICE_ORDER, Voic
 from ...theory.pitch import LETTERS, Note
 from ...theory.scales import key_fifths
 from .. import theme
-from .staff import _music_font
+from .staff import _music_font, draw_clef
 
 
 _BOTTOM_REF = {
@@ -21,7 +21,7 @@ _BOTTOM_REF = {
 }
 _CLEF = {"treble": "\U0001D11E", "bass": "\U0001D122",
          "alto": "\U0001D121", "tenor": "\U0001D121"}
-_ACC = {-2: "𝄫", -1: "♭", 1: "♯", 2: "𝄪"}
+_ACC = {-2: "𝄫", -1: "♭", 0: "♮", 1: "♯", 2: "𝄪"}
 _SHARP_STEPS = {
     "treble": [8, 5, 9, 6, 3, 7, 4], "bass": [6, 3, 7, 4, 1, 5, 2],
     "alto": [7, 4, 8, 5, 2, 6, 3], "tenor": [2, 6, 3, 7, 4, 8, 5],
@@ -43,10 +43,16 @@ class SatbStaffWidget(QWidget):
 
     noteRequested = pyqtSignal(int, object, object)  # slot, Voice, Note
     slotSelected = pyqtSignal(int)
+    noteRemoved = pyqtSignal(int, object)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.voicings: list[Voicing] = []
+        self.partial = []
+        self.entry_accidental = None
+        self.hover_note = None
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.CrossCursor)
         self.ghost_voicings: list[Voicing] = []
         self.harmony_labels: list[str] = []
         self.figured_bass: list[str] = []
@@ -68,14 +74,18 @@ class SatbStaffWidget(QWidget):
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         height = 440 if self.layout_mode == Layout.OPEN_SCORE else 285
-        return QSize(560, height)
+        height = max(height, int(self._label_baseline() + 30))
+        return QSize(max(520, 130 + self._count() * 84), height)
 
     def set_score(self, voicings: list[Voicing], *, labels=None, figures=None,
                   durations=None, ghost=None, locked=None, generated=None,
-                  violations=None) -> None:
+                  violations=None, partial=None) -> None:
         self.voicings = list(voicings)
+        self.partial = list(partial or [])
         self.ghost_voicings = list(ghost or [])
         self.harmony_labels = list(labels or [])
+        self.selected_slot = min(self.selected_slot, self._count() - 1)
+        self.setMinimumSize(self.minimumSizeHint())
         self.figured_bass = list(figures or [])
         self.durations = [float(value) for value in (durations or [])]
         self.locked = set(locked or ())
@@ -87,6 +97,7 @@ class SatbStaffWidget(QWidget):
 
     def set_layout_mode(self, mode: Layout | str) -> None:
         self.layout_mode = mode if isinstance(mode, Layout) else Layout(mode)
+        self.setMinimumSize(self.minimumSizeHint())
         self.updateGeometry()
         self.update()
 
@@ -122,6 +133,10 @@ class SatbStaffWidget(QWidget):
                 for voice in VOICE_ORDER)
             label = self.harmony_labels[index] if index < len(self.harmony_labels) else ""
             columns.append(f"Slot {index + 1}{f' {label}' if label else ''}: {details}")
+        if not self.voicings:
+            for index, notes in enumerate(self.partial):
+                columns.append(f"Slot {index + 1}: " + ", ".join(
+                    f"{v.value} {notes[v].name if notes.get(v) else 'unknown'}" for v in VOICE_ORDER))
         if self.ghost_voicings:
             columns.append("A ghost answer overlay is visible.")
         prefix = f"Key {self.key_tonic} {self.key_mode}, meter {self.meter[0]}/{self.meter[1]}. "
@@ -155,14 +170,31 @@ class SatbStaffWidget(QWidget):
     def _y(self, note: Note, clef: str, bottom: float) -> float:
         return bottom - (note.diatonic_index - _BOTTOM_REF[clef]) * self.line_spacing / 2
 
+    def _count(self):
+        return max(1, len(self.voicings), len(self.partial), len(self.harmony_labels), len(self.ghost_voicings))
+
+    def _label_baseline(self):
+        """Keep harmony labels below the lowest visible stem, including bass ledgers."""
+        baseline = max(item[2] for item in self._systems()) + 28
+        columns = [v.as_dict() for v in self.voicings + self.ghost_voicings]
+        if not self.voicings:
+            columns += self.partial
+        for notes in columns:
+            for voice, note in notes.items():
+                if note is not None:
+                    clef, bottom = self._bottom_for(voice)
+                    end = self._y(note, clef, bottom) + (0 if _VOICE_STYLE[voice][1] else 42)
+                    baseline = max(baseline, end + 18)
+        return baseline
+
     def _column_x(self, index: int) -> float:
         left = self._notation_left()
-        count = max(1, len(self.voicings), len(self.ghost_voicings))
+        count = self._count()
         usable = max(80.0, self.width() - left - 30.0)
         return left + (index + 0.5) * usable / count
 
     def _notation_left(self) -> float:
-        return 108.0 + abs(self.key_signature_fifths) * 9.0
+        return 130.0 + abs(self.key_signature_fifths) * 9.0
 
     def paintEvent(self, _event) -> None:  # noqa: N802
         painter = QPainter(self)
@@ -181,21 +213,40 @@ class SatbStaffWidget(QWidget):
             for line in range(5):
                 y = bottom - line * ls
                 painter.drawLine(QPointF(46, y), QPointF(self.width() - 18, y))
-            painter.drawText(QPointF(49, bottom - (0.55 if clef == "treble" else 1.45) * ls),
-                             _CLEF[clef])
+            draw_clef(painter, clef, 48, bottom, ls, ink)
             self._draw_key_signature(painter, clef, bottom, ink)
             if system_voice is not None:
                 label_font = QFont()
                 label_font.setPixelSize(11)
                 label_font.setBold(True)
                 painter.setFont(label_font)
-                painter.drawText(QPointF(8, bottom - 1.6 * ls), system_voice.value.title())
+                painter.drawText(QPointF(14, bottom - 1.6 * ls), system_voice.value[0].upper())
                 painter.setFont(clef_font)
         self._draw_meter(painter, systems, ink)
         for index, voicing in enumerate(self.ghost_voicings):
             self._draw_voicing(painter, index, voicing, ghost=True)
         for index, voicing in enumerate(self.voicings):
             self._draw_voicing(painter, index, voicing, ghost=False)
+        if not self.voicings:
+            for index, notes in enumerate(self.partial):
+                for voice in VOICE_ORDER:
+                    note = notes.get(voice)
+                    if note is not None:
+                        clef, bottom = self._bottom_for(voice)
+                        self._draw_note(painter, index, voice, note, self._column_x(index),
+                                        self._y(note, clef, bottom), clef, bottom, _VOICE_STYLE[voice][1], False)
+        # A discreet column marker makes blank score slots discoverable.
+        for index in range(self._count()):
+            painter.setPen(QColor("#42675a" if index == self.selected_slot else "#69756f"))
+            font = QFont(); font.setPixelSize(11); painter.setFont(font)
+            painter.drawText(QPointF(self._column_x(index) - 3, 18), str(index + 1))
+        if self.hover_note:
+            slot, voice, note = self.hover_note
+            clef, bottom = self._bottom_for(voice)
+            painter.setOpacity(0.45)
+            self._draw_note(painter, slot, voice, note, self._column_x(slot), self._y(note, clef, bottom),
+                            clef, bottom, _VOICE_STYLE[voice][1], True)
+            painter.setOpacity(1.0)
         self._draw_barlines(painter, systems, ink)
         self._draw_labels(painter, systems, ink)
         painter.end()
@@ -212,7 +263,7 @@ class SatbStaffWidget(QWidget):
         painter.setPen(ink)
         for index in range(min(7, count)):
             y = bottom - steps[index] * self.line_spacing / 2
-            painter.drawText(QPointF(72 + index * 9, y + 6), _ACC[alter])
+            painter.drawText(QPointF(88 + index * 9, y + 6), _ACC[alter])
 
     def _draw_meter(self, painter: QPainter, systems, ink: QColor) -> None:
         font = QFont()
@@ -220,7 +271,7 @@ class SatbStaffWidget(QWidget):
         font.setBold(True)
         painter.setFont(font)
         painter.setPen(ink)
-        x = 76 + abs(self.key_signature_fifths) * 9
+        x = 99 + abs(self.key_signature_fifths) * 9
         for _, _clef, bottom in systems:
             painter.drawText(QPointF(x, bottom - 2.35 * self.line_spacing), str(self.meter[0]))
             painter.drawText(QPointF(x, bottom - 0.35 * self.line_spacing), str(self.meter[1]))
@@ -251,9 +302,9 @@ class SatbStaffWidget(QWidget):
         if not ghost and (index, voice) in self.violations:
             color = QColor(theme.BAD)
         elif not ghost and (index, voice) in self.locked:
-            color = QColor(theme.ACCENT)
+            color = QColor("#28624e")
         elif not ghost and (index, voice) in self.generated:
-            color = QColor(theme.GOOD)
+            color = QColor("#28624e")
         if not ghost and index == self.selected_slot and voice == self.selected_voice:
             highlight = QColor(theme.ACCENT)
             highlight.setAlpha(55)
@@ -279,7 +330,9 @@ class SatbStaffWidget(QWidget):
             painter.drawLine(QPointF(stem_x, y), QPointF(stem_x, y - 42))
         else:
             painter.drawLine(QPointF(stem_x, y), QPointF(stem_x, y + 42))
-        if note.alter:
+        order = "FCGDAEB" if self.key_signature_fifths > 0 else "BEADGCF"
+        key_alter = (1 if self.key_signature_fifths > 0 else -1) if note.letter in order[:abs(self.key_signature_fifths)] else 0
+        if note.alter or key_alter:
             font = _music_font(20)
             painter.setFont(font)
             painter.drawText(QPointF(x - 21, y + 6), _ACC[note.alter])
@@ -290,46 +343,85 @@ class SatbStaffWidget(QWidget):
             painter.drawText(QPointF(x + 9, y - 7), "LOCK")
 
     def _draw_barlines(self, painter: QPainter, systems, ink: QColor) -> None:
-        if not self.durations or not self.voicings:
+        if not self.durations:
             return
         beats_per_bar = self.meter[0] * 4 / self.meter[1]
         total = 0.0
         painter.setPen(QPen(ink, 1.2))
         top = min(bottom - 4 * self.line_spacing for _, _, bottom in systems)
         low = max(bottom for _, _, bottom in systems)
-        for index, duration in enumerate(self.durations[:len(self.voicings)]):
+        for index, duration in enumerate(self.durations[:self._count()]):
             total += duration
             if total >= beats_per_bar - 1e-6:
                 total = 0.0
                 bx = (self._column_x(index) + self._column_x(index + 1)) / 2 \
-                    if index + 1 < len(self.voicings) else self.width() - 21
+                    if index + 1 < self._count() else self.width() - 21
                 painter.drawLine(QPointF(bx, top), QPointF(bx, low))
 
     def _draw_labels(self, painter: QPainter, systems, ink: QColor) -> None:
         font = QFont()
-        font.setPixelSize(11)
+        font.setFamily("Georgia")
+        font.setPixelSize(16)
+        font.setBold(True)
         painter.setFont(font)
         painter.setPen(ink)
-        bottom = max(item[2] for item in systems)
+        baseline = self._label_baseline()
         for index in range(max(len(self.voicings), len(self.harmony_labels))):
             x = self._column_x(index)
             label = self.harmony_labels[index] if index < len(self.harmony_labels) else ""
             figure = self.figured_bass[index] if index < len(self.figured_bass) else ""
             if label:
-                painter.drawText(QPointF(x - 12, bottom + 24), label)
+                painter.drawText(QPointF(x - 12, baseline), label)
             if figure:
-                painter.drawText(QPointF(x - 7, bottom + 40), figure)
+                painter.drawText(QPointF(x - 7, baseline + 18), figure)
 
-    def mousePressEvent(self, event) -> None:  # noqa: N802
-        count = max(1, len(self.voicings), len(self.ghost_voicings))
+    def _entry_at(self, point):
         left = self._notation_left()
-        slot = min(count - 1, max(0, round((event.position().x() - left)
-                                           / max(1, self.width() - left - 30) * count - 0.5)))
-        self.selected_slot = slot
-        self.slotSelected.emit(slot)
+        if not left <= point.x() <= self.width() - 18:
+            return None
+        slot = min(self._count() - 1, max(0, int((point.x() - left)
+                   / max(1, self.width() - left - 30) * self._count())))
         clef, bottom = self._bottom_for(self.selected_voice)
-        step = round((bottom - event.position().y()) / (self.line_spacing / 2))
+        # Keep clicks on another voice's staff or the Roman labels from making wild notes.
+        if not bottom - 6 * self.line_spacing <= point.y() <= bottom + 2 * self.line_spacing:
+            return None
+        step = round((bottom - point.y()) / (self.line_spacing / 2))
         diatonic = _BOTTOM_REF[clef] + step
-        note = Note(LETTERS[diatonic % 7], 0, diatonic // 7)
-        self.noteRequested.emit(slot, self.selected_voice, note)
+        letter = LETTERS[diatonic % 7]
+        alter = self.entry_accidental
+        if alter is None:
+            order = "FCGDAEB" if self.key_signature_fifths > 0 else "BEADGCF"
+            alter = (1 if self.key_signature_fifths > 0 else -1) if letter in order[:abs(self.key_signature_fifths)] else 0
+        return slot, self.selected_voice, Note(letter, alter, diatonic // 7)
+
+    def mouseMoveEvent(self, event):  # noqa: N802
+        self.hover_note = self._entry_at(event.position())
+        if self.hover_note:
+            slot, voice, note = self.hover_note
+            self.setToolTip(f"{voice.value.title()} · {note.name} · chord {slot + 1}")
         self.update()
+
+    def leaveEvent(self, event):  # noqa: N802
+        self.hover_note = None; self.update()
+
+    def mousePressEvent(self, event):  # noqa: N802
+        entry = self._entry_at(event.position())
+        if entry is None:
+            return
+        slot, voice, note = entry
+        self.setFocus(); self.selected_slot = slot; self.slotSelected.emit(slot)
+        if event.button() == Qt.MouseButton.RightButton:
+            self.noteRemoved.emit(slot, voice)
+        elif event.button() == Qt.MouseButton.LeftButton:
+            self.noteRequested.emit(slot, voice, note)
+        self.update()
+
+    def keyPressEvent(self, event):  # noqa: N802
+        if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+            self.noteRemoved.emit(self.selected_slot, self.selected_voice)
+        elif event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+            delta = -1 if event.key() == Qt.Key.Key_Left else 1
+            self.selected_slot = max(0, min(self._count() - 1, self.selected_slot + delta))
+            self.slotSelected.emit(self.selected_slot); self.update()
+        else:
+            super().keyPressEvent(event)

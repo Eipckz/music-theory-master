@@ -32,7 +32,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt6.QtCore import QPointF, QRectF, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
+from PyQt6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QTransform
 from PyQt6.QtWidgets import QWidget
 
 from ...theory.pitch import LETTERS, Note
@@ -60,6 +60,27 @@ def _music_font(pixel_size: int) -> QFont:
     f.setFamilies(_MUSIC_FONT_FAMILIES)
     f.setPixelSize(max(8, pixel_size))
     return f
+
+
+def draw_clef(painter, clef, x, bottom, spacing, ink):
+    """Fit glyph ink bounds to staff coordinates, independent of font baseline.
+
+    Bass dots straddle F3 (second line from the top); C-clefs center on C.
+    Save/restore prevents key signatures and labels changing subsequent clefs.
+    """
+    glyph = {"treble": "\U0001D11E", "bass": "\U0001D122",
+             "alto": "\U0001D121", "tenor": "\U0001D121"}.get(clef, "?")
+    path = QPainterPath(); path.addText(QPointF(0, 0), _music_font(100), glyph)
+    bounds = path.boundingRect()
+    if bounds.isEmpty():
+        return
+    height = spacing * (7.0 if clef == "treble" else 3.5 if clef == "bass" else 4.0)
+    top = bottom - spacing * (5.6 if clef == "treble" else 4.5 if clef == "bass" else 4.0 if clef == "alto" else 5.0)
+    transform = QTransform()
+    transform.translate(x, top); transform.scale(spacing * 2.3 / bounds.width(), height / bounds.height())
+    transform.translate(-bounds.left(), -bounds.top())
+    painter.save(); painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(ink)
+    painter.drawPath(transform.map(path)); painter.restore()
 
 
 # Vertical nudge per accidental, in line-spacing units (positive = down).
@@ -274,8 +295,7 @@ class StaffWidget(QWidget):
             # clef glyph
             p.setFont(clef_font)
             p.setPen(ink)
-            p.drawText(QPointF(left + 2, bottom_y - (0.5 if clef == "treble" else 1.5) * ls),
-                       _CLEF_GLYPH.get(clef, "?"))
+            draw_clef(p, clef, left + 2, bottom_y, ls, ink)
             # key signature: metrics-placed glyphs in their own columns,
             # starting clear of the clef
             kx = left + ls * 4.2

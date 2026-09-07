@@ -16,11 +16,11 @@ from ...theory.neoriemann import nr_transform, parse_triad, triad_name, triad_pc
 from ...theory.settheory import parse_pitch_classes, pc_label, pc_name
 from ..common import heading, subtle
 from .. import theme
-from ..widgets import PianoWidget
+from ..widgets import PianoWidget, StaffWidget
 
-_ROOTS = [("C", 0), ("D\u266d", ("D", -1)), ("D", 0), ("E\u266d", ("E", -1)), ("E", 0),
-          ("F", 0), ("F\u266f", ("F", 1)), ("G", 0), ("A\u266d", ("A", -1)), ("A", 0),
-          ("B\u266d", ("B", -1)), ("B", 0)]
+_ROOTS = [("C", "C"), ("D\u266d", ("D", -1)), ("D", "D"), ("E\u266d", ("E", -1)), ("E", "E"),
+          ("F", "F"), ("F\u266f", ("F", 1)), ("G", "G"), ("A\u266d", ("A", -1)), ("A", "A"),
+          ("B\u266d", ("B", -1)), ("B", "B")]
 _TRIADS = ["major", "minor", "diminished", "augmented"]
 _SEVENTHS = ["dom7", "maj7", "min7", "halfdim7", "dim7"]
 
@@ -74,16 +74,26 @@ class PianoWorkspaceScreen(QWidget):
         ctrl.addStretch(1)
         tonal_layout.addLayout(ctrl)
 
-        self.readout = QLabel("")
+        self.readout = QLabel("Choose a scale or chord, or play a note to see it on the staff.")
+        self.readout.setWordWrap(True)
         self.readout.setObjectName("BodyLg")
         self.readout.setAccessibleName("Played notes readout")
         tonal_layout.addWidget(self.readout)
 
+        self.staff = StaffWidget("treble")
+        self.staff.setAccessibleName("Piano notation preview")
+        self.staff.setMinimumHeight(210)
+        self.staff.setMaximumHeight(230)
+        tonal_layout.addWidget(self.staff)
+
         self.piano = PianoWidget(36, 96)
         self.piano.setMinimumHeight(180)
+        self.piano.setMaximumHeight(200)
         self.piano.notePressed.connect(self._on_press)
         self.piano.noteReleased.connect(self._on_release)
-        tonal_layout.addWidget(self.piano, 1)
+        tonal_layout.addWidget(self.piano)
+        tonal_layout.addWidget(subtle("Keyboard: A–L play notes · W, E, T, Y, U are accidentals · Z / X move the octave. Click the keyboard first to focus it."))
+        tonal_layout.addStretch(1)
         tabs.addTab(tonal, "Tonal")
         tabs.addTab(self._build_pregraduate_tab(), "Pre-Graduate")
         self.tabs = tabs
@@ -156,10 +166,12 @@ class PianoWorkspaceScreen(QWidget):
         lay.addWidget(self.pg_readout)
         self.pg_piano = PianoWidget(36, 96)
         self.pg_piano.setMinimumHeight(180)
+        self.pg_piano.setMaximumHeight(220)
         self.pg_piano.notePressed.connect(self._on_pg_press)
         self.pg_piano.noteReleased.connect(lambda _midi: QTimer.singleShot(
             180, self.pg_piano.clear_highlight))
-        lay.addWidget(self.pg_piano, 1)
+        lay.addWidget(self.pg_piano)
+        lay.addStretch(1)
         return page
 
     def _on_pg_press(self, midi: int) -> None:
@@ -229,6 +241,8 @@ class PianoWorkspaceScreen(QWidget):
         self.piano.highlight([int(midi)], theme.ACCENT)
         n = Note.from_midi(int(midi))
         self.readout.setText(f"{n.name}  (MIDI {midi})")
+        self.staff.set_clef("bass" if n.midi < 60 else "treble")
+        self.staff.set_notes([n])
 
     def _on_release(self, midi: int) -> None:
         QTimer.singleShot(180, self.piano.clear_highlight)
@@ -246,6 +260,8 @@ class PianoWorkspaceScreen(QWidget):
         self.ctx.engine.play_melody(midis, tempo=120)
         self.piano.flash(midis, theme.ACCENT)
         self.readout.setText(" ".join(n.name_no_octave for n in notes))
+        self.staff.set_clef("treble")
+        self.staff.set_notes(notes)
 
     def _play_chord(self) -> None:
         spec = _ROOTS[self.root_combo.currentIndex()][1]
@@ -256,3 +272,5 @@ class PianoWorkspaceScreen(QWidget):
         self.ctx.engine.play_chord(midis)
         self.piano.flash(midis, theme.ACCENT)
         self.readout.setText(f"{ch.symbol}:  " + " ".join(n.name_no_octave for n in voiced))
+        self.staff.set_clef("treble")
+        self.staff.set_columns([voiced])

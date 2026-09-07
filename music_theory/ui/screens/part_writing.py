@@ -9,9 +9,9 @@ from pathlib import Path
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, QObject, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+    QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QDoubleSpinBox, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QListWidget, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QSplitter, QTabWidget, QTableView,
+    QListWidget, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QTabWidget, QTableView,
     QTableWidget, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget,
 )
 
@@ -587,10 +587,13 @@ class PartWritingScreen(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         root = QVBoxLayout(self)
         root.setContentsMargins(20, 16, 20, 16)
-        title = QLabel("Four-Part Writing Lab")
+        kicker = QLabel("PART WRITING STUDIO")
+        kicker.setObjectName("Kicker")
+        root.addWidget(kicker)
+        title = QLabel("Make room for harmony.")
         title.setObjectName("H1")
         root.addWidget(title)
-        subtitle = QLabel("Create practice, solve partial SATB work, or check and explain your writing. Everything works offline.")
+        subtitle = QLabel("Write a voice. Explore the possibilities. Understand every resolution.")
         subtitle.setObjectName("Subtle")
         subtitle.setWordWrap(True)
         root.addWidget(subtitle)
@@ -642,17 +645,17 @@ class PartWritingScreen(QWidget):
         self.top_k = QSpinBox(); self.top_k.setRange(1, 20); self.top_k.setValue(5)
         self.top_k.setAccessibleName("Number of solutions")
         for column, (label, widget) in enumerate((
-            ("Mode", self.mode_box), ("Key", self.key_box), ("Tonality", self.tonality_box),
-            ("Meter", self.meter_box), ("Profile", self.profile_box), ("Layout", self.layout_box),
-            ("Cadence", self.cadence_box), ("Solutions", self.top_k),
+            ("Key", self.key_box), ("Tonality", self.tonality_box),
+            ("Meter", self.meter_box), ("Rules", self.profile_box), ("Layout", self.layout_box),
         )):
             toolbar.addWidget(QLabel(label), 0, column)
             toolbar.addWidget(widget, 1, column)
+        self.mode_box.setCurrentIndex(1)
         self.edit_profile_btn = QPushButton("Edit profile…")
         self.edit_profile_btn.setObjectName("Secondary")
         self.edit_profile_btn.setAccessibleName("Edit custom voice-leading profile")
         self.edit_profile_btn.clicked.connect(self._edit_profile)
-        toolbar.addWidget(self.edit_profile_btn, 2, 4)
+
         layout.addLayout(toolbar)
         search_row = QHBoxLayout()
         self.search_seconds = QSpinBox(); self.search_seconds.setRange(1, 600); self.search_seconds.setValue(30)
@@ -666,11 +669,18 @@ class PartWritingScreen(QWidget):
         paste.setAccessibleName("Paste aligned harmony and voice clues")
         search_row.addWidget(paste)
         search_row.addStretch(1)
-        layout.addLayout(search_row)
+        advanced = QWidget(); advanced.setObjectName("PanelBody")
+        advanced_layout = QVBoxLayout(advanced)
+        options = QGridLayout()
+        for col, (label, widget) in enumerate((("Mode", self.mode_box), ("Cadence", self.cadence_box), ("Solutions", self.top_k))):
+            options.addWidget(QLabel(label), 0, col); options.addWidget(widget, 1, col)
+        options.addWidget(self.edit_profile_btn, 1, 3)
+        advanced_layout.addLayout(options)
+        advanced_layout.addLayout(search_row)
         help_text = QLabel("Add any number of slots. Enter any mix of S/A/T/B clues; blanks are unknown. "
                            "Chords: G7/B, Dsus4, C9, or notes:C E G Bb. Use Slot constraints for alternatives. "
                            "Four voices reduce extended chords; required tones remain mandatory.")
-        help_text.setWordWrap(True); help_text.setObjectName("Subtle"); layout.addWidget(help_text)
+        help_text.setWordWrap(True); help_text.setObjectName("Subtle"); advanced_layout.addWidget(help_text)
 
         practice_row = QHBoxLayout()
         practice_row.addWidget(QLabel("Practice type"))
@@ -692,7 +702,7 @@ class PartWritingScreen(QWidget):
         self.unique_practice.setAccessibleName("Require a uniquely solvable practice")
         practice_row.addWidget(self.unique_practice)
         practice_row.addStretch(1)
-        layout.addLayout(practice_row)
+        advanced_layout.addLayout(practice_row)
 
         editor_row = QHBoxLayout()
         actions = []
@@ -708,7 +718,7 @@ class PartWritingScreen(QWidget):
             button.clicked.connect(callback)
             setattr(self, name, button); actions.append(button); editor_row.addWidget(button)
         editor_row.addStretch(1)
-        layout.addLayout(editor_row)
+
 
         self.model = PartWritingTableModel(self.problem, self)
         self.table = QTableView()
@@ -718,40 +728,58 @@ class PartWritingScreen(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
         self.table.horizontalHeader().setDefaultSectionSize(118)
         self.table.verticalHeader().setDefaultSectionSize(30)
-        self.table.setMinimumHeight(250)
+        self.table.setMinimumHeight(285)
+        self.table.setAlternatingRowColors(True)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        left = QWidget(); left_layout = QVBoxLayout(left); left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(self.table)
-        self.piano = PianoWidget(36, 88)
-        self.piano.setAccessibleName("Note-entry piano for the selected voice and slot")
-        self.piano.notePressed.connect(self._piano_note)
-        left_layout.addWidget(self.piano)
-        splitter.addWidget(left)
-        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0, 0, 0, 0)
+        voice_row = QHBoxLayout()
+        voice_row.addWidget(QLabel("Write a voice"))
+        self.voice_group = QButtonGroup(self)
+        self.voice_buttons = {}
+        for voice in VOICE_ORDER:
+            button = QPushButton(voice.value.title()); button.setObjectName("Voice")
+            button.setCheckable(True); button.setAccessibleName(f"Write {voice.value}")
+            button.clicked.connect(lambda checked=False, v=voice: self._choose_voice(v))
+            self.voice_group.addButton(button); self.voice_buttons[voice] = button
+            voice_row.addWidget(button)
+        self.voice_buttons[Voice.SOPRANO].setChecked(True)
+        self.accidental_box = QComboBox()
+        for label, value in (("In key", None), ("Natural ♮", 0), ("Sharp ♯", 1), ("Flat ♭", -1), ("Double sharp", 2), ("Double flat", -2)):
+            self.accidental_box.addItem(label, value)
+        self.accidental_box.setAccessibleName("Staff accidental")
+        voice_row.addWidget(self.accidental_box)
+        layout.addLayout(voice_row)
+        self.entry_hint = QLabel("Choose a voice, then click its staff to place a note. Unknown voices stay blank.")
+        self.entry_hint.setObjectName("Subtle"); self.entry_hint.setWordWrap(True)
+        layout.addWidget(self.entry_hint)
         self.staff = SatbStaffWidget()
         self.staff.noteRequested.connect(self._staff_note)
         self.staff.slotSelected.connect(self._select_slot)
-        right_layout.addWidget(self.staff, 1)
-        self.status = QLabel("Ready")
-        self.status.setWordWrap(True)
+        self.accidental_box.currentIndexChanged.connect(
+            lambda: setattr(self.staff, "entry_accidental", self.accidental_box.currentData()))
+        self.staff.noteRemoved.connect(self._remove_note)
+        score_scroll = QScrollArea(); score_scroll.setWidgetResizable(True)
+        score_scroll.setWidget(self.staff); score_scroll.setMinimumHeight(325)
+        layout.addWidget(score_scroll)
+        self.score_scroll = score_scroll
+        self.status = QLabel("Ready · Add notes or solve the I–IV–V–I starting progression.")
+        self.status.setObjectName("AccentValue"); self.status.setWordWrap(True)
         self.status.setAccessibleName("Solver status")
-        right_layout.addWidget(self.status)
+        layout.addWidget(self.status)
+        self.piano = PianoWidget(36, 88)
+        self.piano.setAccessibleName("Note-entry piano for the selected voice and slot")
+        self.piano.notePressed.connect(self._piano_note)
+        self.piano.setMinimumHeight(85); self.piano.setMaximumHeight(100)
         self.diagnostics = QTextBrowser()
         self.diagnostics.setAccessibleName("Diagnostics and score explanation")
-        self.diagnostics.setMinimumHeight(145)
-        right_layout.addWidget(self.diagnostics)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 3); splitter.setStretchFactor(1, 4)
-        splitter.setSizes([540, 640])
-        layout.addWidget(splitter, 1)
-
-        commands = QGridLayout()
+        self.diagnostics.setMinimumHeight(150)
+        self.diagnostics.setPlainText("Start with the score above. Enter the notes you know and leave the rest open.\nSolve harmony finds completions; Check evaluates your writing.")
+        commands = QHBoxLayout()
+        more_commands = QGridLayout()
         for command_index, (text, name, callback, secondary) in enumerate((
             ("Generate", "generate_btn", self._generate, False),
-            ("Solve", "solve_btn", self._start_solve, False),
+            ("Solve harmony", "solve_btn", self._start_solve, False),
             ("Stop", "stop_btn", self._stop_solve, True),
-            ("Check", "check_btn", self._check, False),
+            ("Check", "check_btn", self._check, True),
             ("Auto-correct", "auto_correct_btn", self._auto_correct, True),
             ("Explain", "explain_btn", self._explain_selected, True),
             ("Previous", "previous_btn", self._previous_solution, True),
@@ -773,15 +801,58 @@ class PartWritingScreen(QWidget):
             button.setAccessibleName(text)
             button.clicked.connect(callback)
             setattr(self, name, button)
-            commands.addWidget(button, command_index // 8, command_index % 8)
+            if name in ("solve_btn", "stop_btn", "check_btn", "play_btn"):
+                commands.addWidget(button)
+            else:
+                n = more_commands.count()
+                more_commands.addWidget(button, n // 4, n % 4)
         self.stop_btn.setEnabled(False)
         self.reveal_btn.setCheckable(True)
         layout.addLayout(commands)
+        layout.addWidget(self._disclosure("Piano keyboard · optional note entry", self.piano))
+        table_panel = QWidget(); table_panel.setObjectName("PanelBody")
+        table_layout = QVBoxLayout(table_panel)
+        # Two short rows keep every editing command reachable on smaller windows.
+        edit_grid = QGridLayout()
+        for n, button in enumerate(actions):
+            edit_grid.addWidget(button, n // 4, n % 4)
+        table_layout.addLayout(edit_grid); table_layout.addWidget(self.table)
+        layout.addWidget(self._disclosure("Assignment table · harmony, notes & slot editing", table_panel))
+        layout.addWidget(self._disclosure("Practice & solver settings", advanced))
+        action_panel = QWidget(); action_panel.setObjectName("PanelBody"); action_panel.setLayout(more_commands)
+        layout.addWidget(self._disclosure("More actions · solutions, playback & files", action_panel))
+        layout.addWidget(self._disclosure("Feedback & explanation", self.diagnostics, True))
+        layout.addStretch(1)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         scroll.setWidget(host)
         return scroll
+
+    def _disclosure(self, title, content, expanded=False):
+        panel = QWidget(); panel.setObjectName("PanelBody")
+        box = QVBoxLayout(panel); box.setContentsMargins(0, 0, 0, 0); box.setSpacing(6)
+        toggle = QPushButton(("−  " if expanded else "+  ") + title)
+        toggle.setObjectName("Disclosure"); toggle.setCheckable(True); toggle.setChecked(expanded)
+        toggle.setAccessibleName(title)
+        content.setVisible(expanded)
+        def change(checked):
+            content.setVisible(checked); toggle.setText(("−  " if checked else "+  ") + title)
+        toggle.toggled.connect(change)
+        box.addWidget(toggle); box.addWidget(content)
+        return panel
+
+    def _choose_voice(self, voice):
+        self.staff.set_selection(self.staff.selected_slot, voice)
+        self._select_slot(self.staff.selected_slot)
+        self.entry_hint.setText(f"Writing {voice.value} · click the {'upper' if voice in (Voice.SOPRANO, Voice.ALTO) else 'lower'} staff. Right-click a column or press Delete to remove this voice's note.")
+
+    def _remove_note(self, slot, voice):
+        if 0 <= slot < len(self.problem.slots):
+            self.problem.slots[slot].voice(voice).pitch = PitchConstraint()
+            self.problem.slots[slot].voice(voice).locked = False
+            self.model.layoutChanged.emit(); self.model.changed.emit()
+            self.status.setText(f"Removed {voice.value} from chord {slot + 1}.")
 
     def _connect_model(self) -> None:
         self.model.changed.connect(self._problem_changed)
@@ -854,6 +925,8 @@ class PartWritingScreen(QWidget):
     def _problem_changed(self) -> None:
         self._revision = getattr(self, "_revision", 0) + 1
         self.solutions = []
+        self.status.setText("Assignment updated · Solve harmony or Check to review these notes.")
+        self.diagnostics.setPlainText("The assignment changed. Solve or check again for current feedback.")
         self._autosave()
         self._refresh_preview()
 
@@ -895,6 +968,7 @@ class PartWritingScreen(QWidget):
             return
         voice = _VOICE_ROWS.get(current.row(), self.staff.selected_voice)
         self.staff.set_selection(current.column(), voice)
+        self.voice_buttons[voice].setChecked(True)
 
     @guard("PartWritingScreen._select_slot")
     def _select_slot(self, slot: int) -> None:
@@ -982,19 +1056,24 @@ class PartWritingScreen(QWidget):
     @guard("PartWritingScreen._piano_note")
     def _piano_note(self, midi: int) -> None:
         note = Note.from_midi(int(midi))
+        self.ctx.engine.play_note(int(midi), dur=0.45)
         indexes = [index for index in self.table.selectedIndexes()
                    if index.row() in _VOICE_ROWS]
         if indexes:
             for index in indexes:
                 self._set_exact(index.column(), _VOICE_ROWS[index.row()], note)
+            self.status.setText(f"Added {note.name} to {len(indexes)} selected voice cell(s).")
             return
         index = self.table.currentIndex()
         voice = _VOICE_ROWS.get(index.row(), self.staff.selected_voice)
         self._set_exact(index.column() if index.isValid() else 0, voice, note)
+        self.status.setText(f"Added {note.name} · {voice.value.title()}")
 
     @guard("PartWritingScreen._staff_note")
     def _staff_note(self, slot: int, voice: Voice, note: Note) -> None:
         self._set_exact(slot, voice, note)
+        self.ctx.engine.play_note(note.midi, dur=0.45)
+        self.status.setText(f"Added {note.name} · {voice.value.title()} · chord {slot + 1}")
 
     def _entered_voicings(self) -> list[Voicing] | None:
         out = []
@@ -1036,7 +1115,13 @@ class PartWritingScreen(QWidget):
         self.staff.set_clefs(clefs)
         self.staff.set_score(voicings, labels=labels, figures=figures,
                              durations=[slot.duration for slot in self.problem.slots],
-                             ghost=ghost, locked=locked, generated=generated, violations=marked)
+                             ghost=ghost, locked=locked, generated=generated, violations=marked,
+                             partial=[{voice: slot.voice(voice).pitch.exact for voice in VOICE_ORDER}
+                                      for slot in self.problem.slots] if not solution else [])
+        self.score_scroll.setMinimumHeight(470 if self.problem.layout == Layout.OPEN_SCORE else 325)
+        self.previous_btn.setEnabled(len(self.solutions) > 1)
+        self.next_solution_btn.setEnabled(len(self.solutions) > 1)
+        self.reveal_btn.setEnabled(self.practice is not None)
         if solution:
             self.status.setText(
                 f"Solution {self.solution_index + 1}/{len(self.solutions)} · score {solution.score:.2f}")
@@ -1108,6 +1193,9 @@ class PartWritingScreen(QWidget):
         else:
             self.diagnostics.setPlainText(summarize(result.diagnostics))
             self._refresh_preview(result.diagnostics)
+            if result.diagnostics:
+                issue = result.diagnostics[0]
+                self.status.setText(f"{issue.explanation} {issue.correction or ''}")
 
     @guard("PartWritingScreen._thread_finished")
     def _thread_finished(self) -> None:
@@ -1196,6 +1284,16 @@ class PartWritingScreen(QWidget):
             items = [(list(voicing.midi_tuple), slot.duration)
                      for voicing, slot in zip(voicings, self.problem.slots)]
             self.ctx.engine.play_sequence(items, tempo=self.problem.tempo)
+        else:
+            items = []
+            for slot in self.problem.slots:
+                notes = [slot.voice(v).pitch.exact for v in VOICE_ORDER]
+                midis = [note.midi for note in notes if note is not None]
+                items.append((midis or None, slot.duration))
+            if any(notes for notes, _ in items):
+                self.ctx.engine.play_sequence(items, tempo=self.problem.tempo)
+            else:
+                self.status.setText("Add a note to the score or solve the harmony before playing.")
 
     @guard("PartWritingScreen._play_voice")
     def _play_voice(self) -> None:
@@ -1205,6 +1303,14 @@ class PartWritingScreen(QWidget):
             items = [(voicing[voice].midi, slot.duration)
                      for voicing, slot in zip(voicings, self.problem.slots)]
             self.ctx.engine.play_sequence(items, tempo=self.problem.tempo)
+        else:
+            voice = self.staff.selected_voice
+            items = [(slot.voice(voice).pitch.exact.midi if slot.voice(voice).pitch.exact else None,
+                      slot.duration) for slot in self.problem.slots]
+            if any(note is not None for note, _ in items):
+                self.ctx.engine.play_sequence(items, tempo=self.problem.tempo)
+            else:
+                self.status.setText(f"Add a {voice.value} note before playing this voice.")
 
     @guard("PartWritingScreen._play_chord")
     def _play_chord(self) -> None:
