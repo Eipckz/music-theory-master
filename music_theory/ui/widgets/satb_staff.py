@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import QPointF, QRectF, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPicture, QTransform
 from PyQt6.QtWidgets import QWidget
 
 from ...theory.part_writing.models import Clef, Layout, Voice, VOICE_ORDER, Voicing
 from ...theory.pitch import LETTERS, Note
 from ...theory.scales import key_fifths
 from .. import theme
-from .staff import _music_font, draw_clef
+from .staff import _music_font, draw_clef, paint_fitted_notation
 
 
 _BOTTOM_REF = {
@@ -47,6 +47,7 @@ class SatbStaffWidget(QWidget):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self._view_transform = QTransform()
         self.voicings: list[Voicing] = []
         self.partial = []
         self.entry_accidental = None
@@ -198,13 +199,11 @@ class SatbStaffWidget(QWidget):
         return 130.0 + abs(self.key_signature_fifths) * 9.0
 
     def paintEvent(self, _event) -> None:  # noqa: N802
-        painter = QPainter(self)
+        picture = QPicture()
+        painter = QPainter(picture)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         paper = QColor(theme.STAFF_PAPER)
         ink = QColor(theme.STAFF_INK)
-        painter.setBrush(paper)
-        painter.setPen(QPen(QColor(theme.BORDER), 1))
-        painter.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 9, 9)
         ls = self.line_spacing
         systems = self._systems()
         clef_font = _music_font(int(ls * 5.1))
@@ -260,6 +259,7 @@ class SatbStaffWidget(QWidget):
         self._draw_barlines(painter, systems, ink)
         self._draw_labels(painter, systems, ink)
         painter.end()
+        paint_fitted_notation(self, picture, paper, 9)
 
     def _draw_key_signature(self, painter: QPainter, clef: str,
                             bottom: float, ink: QColor) -> None:
@@ -405,7 +405,7 @@ class SatbStaffWidget(QWidget):
         return slot, self.selected_voice, Note(letter, alter, diatonic // 7)
 
     def mouseMoveEvent(self, event):  # noqa: N802
-        self.hover_note = self._entry_at(event.position())
+        self.hover_note = self._entry_at(self._view_transform.inverted()[0].map(event.position()))
         if self.hover_note:
             slot, voice, note = self.hover_note
             self.setToolTip(f"{voice.value.title()} · {note.name} · chord {slot + 1}")
@@ -415,7 +415,7 @@ class SatbStaffWidget(QWidget):
         self.hover_note = None; self.update()
 
     def mousePressEvent(self, event):  # noqa: N802
-        entry = self._entry_at(event.position())
+        entry = self._entry_at(self._view_transform.inverted()[0].map(event.position()))
         if entry is None:
             return
         slot, voice, note = entry

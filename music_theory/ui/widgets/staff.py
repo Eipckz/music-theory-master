@@ -32,7 +32,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt6.QtCore import QPointF, QRectF, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QTransform
+from PyQt6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen, QPicture, QTransform
 from PyQt6.QtWidgets import QWidget
 
 from ...theory.pitch import LETTERS, Note
@@ -150,6 +150,7 @@ class StaffWidget(QWidget):
         self._columns: list[list[Note]] = []
         self._ghost_columns: list[list[Note]] = []
         self._durations: Optional[list[float]] = None
+        self._view_transform = QTransform()
         self.setAccessibleName("Music staff")
 
     # line_spacing stays assignable (tests/tools may pin a size); unset means
@@ -269,16 +270,16 @@ class StaffWidget(QWidget):
 
     # -- painting ---------------------------------------------------------
     def paintEvent(self, _event) -> None:
-        p = QPainter(self)
+        # Record the actual ink bounds, including ledger notes, clefs, stems,
+        # labels and long sequences. Fit uniformly only when it would clip.
+        picture = QPicture()
+        p = QPainter(picture)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         # warm "paper" card with rounded corners so the staff sits like a
         # panel instead of a raw white rectangle in the dark layout
         paper = STYLE["paper"] or theme.STAFF_PAPER
         ink = QColor(theme.STAFF_INK)
-        p.setBrush(QColor(paper))
-        p.setPen(QPen(QColor(theme.BORDER), 1))
-        p.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 8, 8)
         ls = self.line_spacing
         left = 12
         right = self.width() - 12
@@ -341,6 +342,7 @@ class StaffWidget(QWidget):
                     y1 = tops[-1][1]
                     p.drawLine(QPointF(bx, y0), QPointF(bx, y1))
         p.end()
+        paint_fitted_notation(self, picture, paper)
 
     def _duration_at(self, i: int) -> Optional[float]:
         if self._durations and i < len(self._durations):
@@ -549,11 +551,12 @@ class StaffWidget(QWidget):
     def mousePressEvent(self, e) -> None:
         if not self.allow_input:
             return
+        position = self._view_transform.inverted()[0].map(e.position())
         clef, bottom_y = self._staff_tops()[0]
         if self.clef == "grand":
             staves = self._staff_tops()
-            clef, bottom_y = min(staves, key=lambda s: abs(e.position().y() - s[1]))
-        step = round((bottom_y - e.position().y()) / (self.line_spacing / 2))
+            clef, bottom_y = min(staves, key=lambda s: abs(position.y() - s[1]))
+        step = round((bottom_y - position.y()) / (self.line_spacing / 2))
         dia = _BOTTOM_REF[clef] + int(step)
         letter = LETTERS[dia % 7]
         octave = dia // 7
@@ -562,3 +565,23 @@ class StaffWidget(QWidget):
         self._columns = [[n] for n in self.notes]
         self.noteAdded.emit(note)
         self.update()
+
+def paint_fitted_notation(widget, picture, paper, radius=8):
+    """Draw all recorded ink inside the card and retain the inverse input map."""
+    bounds = QRectF(picture.boundingRect()).adjusted(-5, -5, 5, 5)
+    viewport = QRectF(widget.rect()).adjusted(8, 8, -8, -8)
+    widget._view_transform = QTransform()
+    if not viewport.contains(bounds) and viewport.width() > 0 and viewport.height() > 0:
+        scale = min(1.0, viewport.width() / bounds.width(), viewport.height() / bounds.height())
+        widget._view_transform.translate(viewport.center().x(), viewport.center().y())
+        widget._view_transform.scale(scale, scale)
+        widget._view_transform.translate(-bounds.center().x(), -bounds.center().y())
+    widget._ink_bounds = bounds
+    p = QPainter(widget)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    p.setBrush(QColor(paper))
+    p.setPen(QPen(QColor(theme.BORDER), 1))
+    p.drawRoundedRect(widget.rect().adjusted(0, 0, -1, -1), radius, radius)
+    p.setTransform(widget._view_transform)
+    p.drawPicture(0, 0, picture)
+    p.end()

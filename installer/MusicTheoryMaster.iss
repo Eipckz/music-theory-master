@@ -4,7 +4,7 @@
 ; Build:  ISCC.exe /DMyAppVersion=1.0.0 installer\MusicTheoryMaster.iss
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.5.0"
+  #define MyAppVersion "1.5.1"
 #endif
 #define MyAppName "Music Theory Master"
 #define MyAppExeName "MusicTheoryMaster.exe"

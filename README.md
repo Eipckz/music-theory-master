@@ -23,6 +23,10 @@ A shared layout brings each workspace into the same visual system: compact icon 
 
 ![Redesigned harmony solver](docs/design/current-solver.png)
 
+### Complete notation at any window size
+
+All staff views fit the full notation inside their paper panel, including ledger notes, clefs, accidentals, stems and long passages. The solver retains score scrolling and accurate click-to-place input. Placement, Learn and Practice exercises scroll when the available height is too small, keeping answer buttons readable; feedback scrolls into view after answering.
+
 ### Learn by doing
 
 The first launch opens **Tutorial**. **Your first harmony** is a seven-step, approximately four-minute walkthrough in the real editor: choose Bass, place C3, place F3, remove and replace a note, solve the missing voices, request playback and inspect the assignment table. A ring marks the target pitch. Wrong pitches get specific correction feedback; Continue unlocks only after the action succeeds.

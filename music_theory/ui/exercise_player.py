@@ -6,11 +6,11 @@ from __future__ import annotations
 import time
 from typing import Callable, Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QVBoxLayout, QWidget,
+    QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
 from ..errors import guard
@@ -59,7 +59,16 @@ class ExercisePlayer(QWidget):
         self._hint_text = ""
         self.was_hinted = False
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self._root = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setAccessibleName("Exercise content")
+        content = QWidget()
+        self._root = QVBoxLayout(content)
+        self.scroll.setWidget(content)
+        outer.addWidget(self.scroll)
         self._root.setContentsMargins(24, 20, 24, 20)
         self._root.setSpacing(14)
         self._build_static()
@@ -158,6 +167,7 @@ class ExercisePlayer(QWidget):
         self._setup_audio()
         self._clear_layout(self.input_layout)
         self._build_input()
+        self.scroll.verticalScrollBar().setValue(0)
         self.setFocus()
 
     def _show_hint(self) -> None:
@@ -565,9 +575,14 @@ class ExercisePlayer(QWidget):
         style.unpolish(self.feedback_panel)
         style.polish(self.feedback_panel)
         self.feedback_panel.show()
+        QTimer.singleShot(0, self._scroll_to_feedback)
         if hasattr(self, "_choice_btns"):
             for b in self._choice_btns:
                 b.setEnabled(False)
+
+    def _scroll_to_feedback(self):
+        if self._answered and self.feedback_panel.isVisible():
+            self.scroll.ensureWidgetVisible(self.feedback_panel, 0, 24)
 
     def _answer_text(self) -> str:
         if self.ex.input_mode in (InputMode.MULTIPLE_CHOICE, InputMode.TEXT):
@@ -603,6 +618,7 @@ class ExercisePlayer(QWidget):
         style.unpolish(self.feedback_panel)
         style.polish(self.feedback_panel)
         self.feedback_panel.show()
+        QTimer.singleShot(0, self._scroll_to_feedback)
         # reveal
         rev = self.ex.reveal or {}
         if "staff" in rev:
