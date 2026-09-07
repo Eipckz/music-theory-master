@@ -34,7 +34,7 @@ class DashboardScreen(QWidget):
         hero, hl = card()
         eyebrow = QLabel("A LITTLE PRACTICE. A DEEPER UNDERSTANDING."); eyebrow.setObjectName("Kicker")
         hl.addWidget(eyebrow)
-        title = QLabel("Find your next\nmusical breakthrough."); title.setObjectName("HeroTitle")
+        title = QLabel("What would you like to work on?"); title.setObjectName("HeroTitle"); title.setWordWrap(True)
         hl.addWidget(title)
         hl.addWidget(subtle("Train your ear, build fluency at the keyboard, and turn theory into music."))
         actions = QHBoxLayout()
@@ -44,6 +44,19 @@ class DashboardScreen(QWidget):
         solver.setObjectName("Secondary"); solver.clicked.connect(lambda: self.navigate and self.navigate("part_writing"))
         actions.addWidget(self.continue_btn); actions.addWidget(solver); actions.addStretch()
         hl.addLayout(actions); root.addWidget(hero)
+
+        destinations = QGridLayout(); destinations.setSpacing(10)
+        for i, (name, purpose, target) in enumerate((
+            ("Piano", "See and hear scales, chords and notes", "piano"),
+            ("Reference", "Explore a concept or look up a term", "reference"),
+            ("Studio", "Work with scores, singing and jazz", "studio"),
+            ("Tools", "Transpose, find scales and keep time", "tools"),
+        )):
+            button = QPushButton(f"{name}  →\n{purpose}"); button.setObjectName("ModuleCard")
+            button.setMinimumHeight(68); button.setAccessibleName(f"Open {name}")
+            button.clicked.connect(lambda checked=False, key=target: self.navigate and self.navigate(key))
+            destinations.addWidget(button, i // 2, i % 2)
+        root.addLayout(destinations)
 
         stats = QHBoxLayout(); stats.setSpacing(14)
         self.streak_card, sc = card("Practice streak")

@@ -74,10 +74,10 @@ def draw_clef(painter, clef, x, bottom, spacing, ink):
     bounds = path.boundingRect()
     if bounds.isEmpty():
         return
-    height = spacing * (7.0 if clef == "treble" else 3.5 if clef == "bass" else 4.0)
-    top = bottom - spacing * (5.6 if clef == "treble" else 4.5 if clef == "bass" else 4.0 if clef == "alto" else 5.0)
+    height = spacing * (6.0 if clef == "treble" else 3.1 if clef == "bass" else 4.0)
+    top = bottom - spacing * (4.9 if clef == "treble" else 4.33 if clef == "bass" else 4.0 if clef == "alto" else 5.0)
     transform = QTransform()
-    transform.translate(x, top); transform.scale(spacing * 2.3 / bounds.width(), height / bounds.height())
+    transform.translate(x, top); transform.scale(spacing * 1.9 / bounds.width(), height / bounds.height())
     transform.translate(-bounds.left(), -bounds.top())
     painter.save(); painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(ink)
     painter.drawPath(transform.map(path)); painter.restore()
@@ -316,7 +316,7 @@ class StaffWidget(QWidget):
         # draw columns left-to-right; ghost (answer) aligns by index with entry
         count = max(1, len(self._columns), len(self._ghost_columns))
         span = right - x_start - 24
-        step_x = max(ls * 2.0, min(ls * 5.5, span / count))
+        step_x = max(ls * 2.0, span / count if getattr(self, "spread_columns", False) else min(ls * 5.5, span / count))
         for i, col in enumerate(self._ghost_columns):
             self._draw_column(p, col, x_start + ls * 1.2 + i * step_x, acc_font, True,
                               self._duration_at(i))

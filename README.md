@@ -13,15 +13,23 @@ An offline desktop workspace for written theory, listening, keyboard practice, S
 
 [Download](https://github.com/Eipckz/music-theory-master/releases/latest) · [Start here](#start-here) · [Every workspace](#every-workspace) · [Full curriculum](#full-curriculum) · [Build and contribute](#build-and-contribute)
 
-<img src="docs/design/generation-3-home.png" alt="Music Theory Master dashboard" width="850">
+<img src="docs/design/current-home.png" alt="Music Theory Master home with workspace launch cards" width="850">
 
 </div>
 
 ## The Modern Conservatory redesign
 
-A quieter ink-green workspace, mint actions, ivory manuscript paper and serif headings give Music Theory Master a new visual identity. The design starts from an [AI-generated brand concept](docs/design/modern-conservatory-concept.png); the screenshots here show the **actual native application**. [Design tokens, prompt and implementation decisions](docs/design/BRAND.md) are included in the repository.
+A shared layout brings each workspace into the same visual system: compact icon navigation, an editorial heading, task cards, a music canvas and a contextual **Your next step** guide. Ink-green panels, mint actions and ivory manuscript paper follow the [generated four-workspace design reference](docs/design/workspace-system-concept.png). Screenshots below show the **actual native application**. [Design decisions and generation brief](docs/design/BRAND.md) are included.
 
-![Redesigned harmony solver](docs/design/generation-4-solved.png)
+![Redesigned harmony solver](docs/design/current-solver.png)
+
+### Learn by doing
+
+The first launch opens **Tutorial**. **Your first harmony** is a seven-step, approximately four-minute walkthrough in the real editor: choose Bass, place C3, place F3, remove and replace a note, solve the missing voices, request playback and inspect the assignment table. A ring marks the target pitch. Wrong pitches get specific correction feedback; Continue unlocks only after the action succeeds.
+
+The tutorial uses its own score store. It does not overwrite an assignment or award course XP. **Pause & leave** saves your place; **Tutorial** offers Resume, Restart or Replay as appropriate. Resuming after a solve restores your notes and asks you to solve again. **Explore on my own** skips onboarding, and every workspace's **Show me how** button returns to its guide. The tutorial hub explains all workspaces; the harmony walkthrough is the action-checked tour.
+
+![Interactive first-harmony tutorial](docs/design/current-tutorial.png)
 
 ### Write directly on the score
 
@@ -31,32 +39,40 @@ A quieter ink-green workspace, mint actions, ivory manuscript paper and serif he
 4. Right-click a column on that voice's staff, or focus the score and press **Delete**, to remove the selected voice's note. Left/right arrows move between chord columns.
 5. Press **Solve harmony** for ranked completions, **Check** for feedback, or **Play all** to hear the notes already entered, including partial scores. Staff and piano entry also audition the pitch.
 
-![Optional piano and note-entry controls](docs/design/generation-3-piano.png)
+The compact piano stays under the score in **Write**. It enters notes into the selected voice/slot; selecting several voice cells in the table applies a piano note to all selected cells. Computer-keyboard piano controls remain available when the piano has focus. **Solve harmony**, **Stop**, **Check** and **Play all** remain below the task canvas as you switch tasks or scroll a long score. Stop cancels a search or stops playback.
 
-The **Piano keyboard** disclosure keeps the on-screen keyboard available. It enters notes into the selected voice/slot; selecting several voice cells in the table applies a piano note to all selected cells. Computer-keyboard piano controls remain available when the piano has focus.
-
-| Expand this panel | Available tools |
+| Task | Available tools |
 |---|---|
-| **Assignment table · harmony, notes & slot editing** | Exact pitches and other constraints; Roman numerals, figured bass, chord symbols and durations; add/remove/duplicate/reorder slots, locks and detailed slot constraints. |
-| **Practice & solver settings** | Practice generation type, difficulty, unique-solution option, cadence, result count, search budget/width, profile editing and aligned assignment paste. |
-| **More actions · solutions, playback & files** | Generate, auto-correct, explain, previous/next solution, reveal practice answer, voice/chord/transition/comparison playback, Save/Open JSON, MusicXML export and Reset. |
-| **Feedback & explanation** | Complete diagnostics and ranking breakdown. The status beside the score shows the first actionable input conflict. |
+| **Write** | Key, tonality, meter, rule profile, layout, voice and accidental controls; direct staff entry and the compact piano. |
+| **Assignment** | Harmony labels, durations and exact clues; paste aligned rows; add/remove/duplicate/reorder slots, locks, detailed slot constraints and auto-correction. |
+| **Practice & rules** | Practice type, difficulty, unique-solution option and Generate; cadence, result count, search budget/width and custom profile editing. |
+| **Listen & files** | Previous/next solution, reveal practice answer, explanation, voice/chord/transition/comparison playback, Save/Open JSON, MusicXML export and Reset. |
+| **Guidance rail** | Task-specific instructions plus complete diagnostics and ranking feedback. |
 
-All existing workspaces, course content, audio/MIDI settings, themes, progress data and import/export features remain. The score scrolls horizontally for long assignments; the page scrolls vertically for expanded tools. Bass clefs use consistent ink-bound placement, separate from the meter and key signature.
+Course guides remain in the smaller tabs above these tasks. All existing workspaces, course content, audio/MIDI settings, themes, progress data and import/export features remain. Long scores scroll; switching Chorale, Piano-style and Open score preserves a displayed solution. Clefs use consistent ink-bound placement, separate from meter and key signatures.
+
+### Focused modules
+
+**Practice** starts with All skills, Theory, Ear training or Keyboard, followed by a topic and a separate adaptive-difficulty row. **Reference**, **Tools**, **Studio** and **Piano** use module cards with guidance that follows the selected module. Tool fields use balanced columns and distinct primary actions.
+
+In **Studio → Score study**, open MusicXML/MXL or **Try a sample score**. The pitch overview appears first; expand **Passage setup** for parts, measures, voice, tempo and review thresholds. The overview groups pitches at the first twelve selected attack times; it is not a full engraved reproduction of the imported score. Playback and analysis still use the selected passage, including its note lengths and internal rests.
+
+![Score study with the sample passage](docs/design/current-studio.png)
 
 The dedicated **Piano** workspace also uses a proportional keyboard and a notation preview for played notes, scales and chords. Natural and accidental tonic choices work across all twelve roots; selecting a low note switches its preview to bass clef.
 
-![Piano with notation preview](docs/design/generation-4-piano-workspace.png)
+![Piano with notation preview](docs/design/generation-7-piano.png)
 
-**Review evidence:** independent native-app reviewers graded successive generations, with actual mouse/keyboard interaction rather than screenshots generated by a test harness. See [Generation 1](docs/design/generation-1-review.md), [Generation 2](docs/design/generation-2-review.md), [Generation 3](docs/design/generation-3-review.md), [Generation 4](docs/design/generation-4-review.md), and the [validation record](docs/design/VALIDATION.md) for scores, coverage and remaining limits.
+**Review evidence:** successive dedicated reviewers compared the design reference and exercised the native application with mouse and keyboard. The second cycle starts with a stricter [Generation 5 baseline](docs/design/generation-5-review.md), followed by [Generation 6](docs/design/generation-6-review.md), [Generation 7](docs/design/generation-7-review.md) and further reviews recorded in the [validation record](docs/design/VALIDATION.md). Reports distinguish visual inspection, completed interactions and untested hardware.
 
-These redesign screenshots document this source revision. The latest downloadable binary can predate source changes; use the source instructions below until a release includes this redesign. Older feature screenshots farther down this guide document the earlier visual theme, with their feature descriptions retained.
+Install **v1.5.0 or newer** for this interface and tutorial. The Windows icon uses the same conservatory mark as the sidebar. Earlier releases use the previous interface. Older feature screenshots farther down this guide document the earlier visual theme, with their feature descriptions retained.
 
 ## Start here
 
 | Your starting point | Where to go |
 |---|---|
-| New to theory | Skip placement and begin **Learn**. Read a short lesson, hear examples, then practice. |
+| New to the app | Start **Tutorial → Your first harmony**, or choose Explore on my own. |
+| New to theory | Begin **Learn**. Read a short lesson, hear examples, then practice; placement is optional. |
 | Returning learner | Take **Placement** with breadth checks. Choose theory, aural and/or piano; results suggest a provisional starting point and review topics. |
 | Working on an assignment | Open **Part Writing** for constrained SATB; use **Reference** for note/rhythm analysis and **Tools** for transposition, scales and worksheets. |
 | Studying a score or preparing a class assignment | Open **Studio**: import MusicXML, practice a selected voice, compare a recording, study jazz or exchange an offline assignment. |
@@ -88,6 +104,7 @@ Runtime is offline: no account, telemetry or cloud service. Source tests also ru
 | **Reference** | Circle of fifths, staff/keyboard explorer, free note analysis, exact rhythm/meter calculator, post-tonal clock/set/matrix/P-L-R workbench and searchable playable glossary. |
 | **Tools** | Spelled transposition and instrument conversion, reverse scale finder, accented/subdivided metronome and tap tempo, printable worksheets/answer keys, custom-tuning fretboard. |
 | **Studio** | MusicXML/MXL passages, pitch-entry practice, independent-line voice-leading review, microphone/WAV pitch feedback, jazz progression player and offline assignment/result exchange. |
+| **Tutorial** | Isolated, resumable seven-step harmony walkthrough with action validation, correction feedback and guides to every workspace. |
 | **Progress** | Every skill's level, unlock state, mastery estimate, attempts and guided status, plus overall accuracy and completion counts. |
 | **Awards** | Achievement gallery, earned milestones and dismissible celebrations; reduce motion is available. |
 | **Placement** | Selectable domains, adaptive staircase, confirmation, optional breadth checks, sound check, explicit unknown response, cancel without saving, evidence-based provisional results and safe retakes. |

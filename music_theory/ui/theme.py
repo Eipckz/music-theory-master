@@ -381,7 +381,17 @@ QTabBar::tab {{
 }}
 QTabBar::tab:selected {{ background: %SURFACE%; color: %TEXT%; border-bottom: 2px solid %ACCENT%; }}
 QTabBar::tab:hover {{ color: %TEXT%; }}
-QWidget#PanelBody {{ background: transparent; }}
+QWidget#PanelBody, QWidget#WorkspaceCanvas, QWidget#WorkspaceHeader {{ background: transparent; }}
+QLabel#WorkspaceTitle {{ font-family: "Georgia"; font-size: {fs26}px; color: %TEXT%; padding: 2px 0; }}
+QFrame#Coach {{ background: %SURFACE%; border: 1px solid %BORDER%; border-radius: 10px; }}
+QLabel#CoachTitle {{ font-family: "Georgia"; font-size: {fs20}px; color: %TEXT%; }}
+QLabel#CoachStep {{ color: %SECONDARY_TEXT%; font-size: {fs14}px; line-height: 1.5; }}
+QLabel#FieldLabel {{ color: %TEXT_MUTED%; font-size: {fs12}px; }}
+QPushButton#ModuleCard {{ background: %SURFACE%; color: %TEXT_MUTED%; border: 1px solid %BORDER%; border-radius: 7px; text-align: left; padding: 9px 12px; }}
+QPushButton#ModuleCard:checked {{ background: %SURFACE_3%; color: %TEXT%; border: 1px solid %ACCENT%; }}
+QPushButton#ModuleCard:hover {{ border-color: %ACCENT%; color: %TEXT%; }}
+QPushButton#CoachAction {{ background: %ACCENT%; color: %TEXT_DARK%; padding: 10px; }}
+QPushButton[tutorialTarget="true"] {{ border: 2px solid %FOCUS%; }}
 QLabel#HeroTitle {{ font-family: "Georgia"; font-size: {fs26}px; color: %TEXT%; }}
 QLabel#NavSection {{ color: %TEXT_MUTED%; font-size: {fs12}px; padding: 8px 14px 2px; letter-spacing: 1px; }}
 QPushButton#Disclosure {{ text-align: left; background: %SURFACE%; color: %SECONDARY_TEXT%; border: 1px solid %BORDER%; }}

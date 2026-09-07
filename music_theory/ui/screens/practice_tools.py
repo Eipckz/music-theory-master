@@ -5,7 +5,7 @@ import time
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QComboBox, QLineEdit,
+    QWidget, QVBoxLayout, QGridLayout, QComboBox, QLineEdit,
     QSpinBox, QPushButton, QLabel, QPlainTextEdit, QTabWidget, QFileDialog,
     QTableWidget, QTableWidgetItem, QAbstractItemView, QListWidget, QTextBrowser, QScrollArea, QFrame,
 )
@@ -35,36 +35,64 @@ def spin(low, high, value):
     return box
 
 
-class ToolPage(QScrollArea):
+class ToolPage(QWidget):
     def __init__(self, ctx, help_text):
         super().__init__()
         self.ctx = ctx
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.outer = QVBoxLayout(self)
+        self.outer.setContentsMargins(8, 8, 8, 8)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.host = QWidget()
-        self.setWidget(self.host)
+        self.scroll.setWidget(self.host)
+        self.outer.addWidget(self.scroll, 1)
         self.layout = QVBoxLayout(self.host)
         label = QLabel(help_text)
+        self.help_label = label
         label.setWordWrap(True)
         self.layout.addWidget(label)
-        self.form = QFormLayout()
+        label.setObjectName("Subtle")
+        self.form = QGridLayout()
+        self.form.setHorizontalSpacing(18)
+        self.form.setVerticalSpacing(12)
+        self.form.setColumnStretch(0, 1)
+        self.form.setColumnStretch(1, 1)
+        self.field_count = 0
         self.layout.addLayout(self.form)
-        self.buttons = QHBoxLayout()
-        self.layout.addLayout(self.buttons)
+        self.buttons = QGridLayout()
+        self.button_count = 0
+        self.outer.addLayout(self.buttons)
         self.report = QPlainTextEdit()
         self.report.setReadOnly(True)
         self.report.setAccessibleName("Tool results")
+        self.report.setMinimumHeight(170)
         self.layout.addWidget(self.report, 1)
 
     def field(self, title, widget):
         widget.setAccessibleName(title)
-        self.form.addRow(title, widget)
+        cell = QWidget()
+        box = QVBoxLayout(cell)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(5)
+        label = QLabel(title)
+        label.setObjectName("FieldLabel")
+        label.setWordWrap(True)
+        box.addWidget(label)
+        box.addWidget(widget)
+        box.addStretch(1)
+        self.form.addWidget(cell, self.field_count // 2, self.field_count % 2)
+        self.field_count += 1
         return widget
 
     def button(self, title, handler):
         button = QPushButton(title)
         button.clicked.connect(handler)
-        self.buttons.addWidget(button)
+        primary = title in ("Transpose", "Find scales", "Start", "Generate", "Generate sheet", "Build fretboard", "Open MusicXML", "Record", "Build progression", "Create")
+        if not primary:
+            button.setObjectName("Secondary")
+        self.buttons.addWidget(button, self.button_count // 3, self.button_count % 3)
+        self.button_count += 1
         return button
 
     def watch(self, widgets, handler):

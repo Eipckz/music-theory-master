@@ -35,6 +35,7 @@ _SCHEMA: dict[str, tuple[Any, type]] = {
     "staff_paper": ("", str),            # "#rrggbb" or "" for the theme paper
     "show_note_names": (True, bool),
     "placement_done": (False, bool),
+    "onboarding_seen": (False, bool),
     "name": ("Learner", str),
 }
 

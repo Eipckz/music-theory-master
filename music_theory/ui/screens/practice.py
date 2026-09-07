@@ -8,7 +8,7 @@ import random
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout, QWidget,
+    QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout, QWidget, QButtonGroup,
 )
 
 from ...adaptive import MasteryModel, difficulty_for_rating, level_for_rating
@@ -43,8 +43,15 @@ class PracticeScreen(QWidget):
         for label, _ in _DOMAINS:
             self.domain_combo.addItem(label)
         self.domain_combo.currentIndexChanged.connect(self._refill_types)
-        controls.addWidget(QLabel("Area:"))
-        controls.addWidget(self.domain_combo)
+        self.domain_combo.setParent(self); self.domain_combo.hide()
+        domains = QHBoxLayout(); group = QButtonGroup(self); buttons = []
+        for index, title in enumerate(("All skills", "Theory", "Ear training", "Keyboard")):
+            button = QPushButton(title); button.setObjectName("ModuleCard"); button.setCheckable(True)
+            button.setMinimumHeight(46); group.addButton(button); domains.addWidget(button); buttons.append(button)
+            button.clicked.connect(lambda checked=False, i=index: self.domain_combo.setCurrentIndex(i))
+        buttons[0].setChecked(True)
+        self.domain_combo.currentIndexChanged.connect(lambda i: buttons[i].setChecked(True))
+        root.addLayout(domains)
 
         self.type_combo = QComboBox()
         self.type_combo.setAccessibleName("Practice topic")
@@ -55,7 +62,8 @@ class PracticeScreen(QWidget):
         self.adaptive_chk.setChecked(True)
         self.adaptive_chk.setToolTip("Automatically raise or lower difficulty based on your answers.")
         self.adaptive_chk.toggled.connect(self._on_adaptive_toggled)
-        controls.addWidget(self.adaptive_chk)
+        difficulty_row = QHBoxLayout()
+        difficulty_row.addWidget(self.adaptive_chk)
 
         self.diff = QSlider(Qt.Orientation.Horizontal)
         self.diff.setAccessibleName("Difficulty")
@@ -64,19 +72,21 @@ class PracticeScreen(QWidget):
         self.diff.setValue(6)
         self.diff_label = QLabel("Difficulty 3.0")
         self.diff.valueChanged.connect(self._on_slider_changed)
-        controls.addWidget(self.diff_label)
-        controls.addWidget(self.diff, 1)
+        difficulty_row.addWidget(self.diff_label)
+        difficulty_row.addWidget(self.diff, 1)
 
-        start = QPushButton("New")
+        start = QPushButton("New question")
+        start.setAccessibleName("New")
         start.clicked.connect(self._new)
         controls.addWidget(start)
-        weak = QPushButton("🎯 Focus weakest")
+        weak = QPushButton("Focus weakest")
         weak.setObjectName("Secondary")
         weak.setToolTip("Jump straight to the topic your mastery data says needs work")
         weak.setAccessibleName("Practice your weakest skill")
         weak.clicked.connect(self._focus_weakest)
-        controls.addWidget(weak)
+        difficulty_row.addWidget(weak)
         root.addLayout(controls)
+        root.addLayout(difficulty_row)
 
         self.player = ExercisePlayer(self.ctx.engine, self.ctx.midi,
                                      settings=self.ctx.settings)

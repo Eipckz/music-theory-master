@@ -91,6 +91,12 @@ def test_start_solve_display_and_move_between_solutions(window, qapp):
     first = screen.solution_index
     screen._next_solution(); assert screen.solution_index != first
     screen._previous_solution(); assert screen.solution_index == first
+    solutions = screen.solutions
+    screen.layout_box.setCurrentIndex(2)
+    assert screen.solutions is solutions
+    assert screen.staff.voicings == solutions[first].voicings
+    screen.layout_box.setCurrentIndex(0)
+    assert screen.solutions is solutions
 
 
 def test_check_entered_solution_and_no_solution_diagnostics(window, qapp):

@@ -51,6 +51,7 @@ class SatbStaffWidget(QWidget):
         self.partial = []
         self.entry_accidental = None
         self.hover_note = None
+        self.tutorial_target = None
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.CrossCursor)
         self.ghost_voicings: list[Voicing] = []
@@ -223,6 +224,15 @@ class SatbStaffWidget(QWidget):
                 painter.drawText(QPointF(14, bottom - 1.6 * ls), system_voice.value[0].upper())
                 painter.setFont(clef_font)
         self._draw_meter(painter, systems, ink)
+        if self.tutorial_target:
+            slot, voice, note = self.tutorial_target
+            clef, bottom = self._bottom_for(voice)
+            x, y = self._column_x(slot), self._y(note, clef, bottom)
+            painter.setBrush(QColor("#c4e4cb"))
+            painter.setPen(QPen(QColor("#24704d"), 2))
+            painter.drawEllipse(QPointF(x, y), 13, 13)
+            font = QFont(); font.setPixelSize(12); painter.setFont(font)
+            painter.drawText(QPointF(x + 19, y + 4), note.name)
         for index, voicing in enumerate(self.ghost_voicings):
             self._draw_voicing(painter, index, voicing, ghost=True)
         for index, voicing in enumerate(self.voicings):

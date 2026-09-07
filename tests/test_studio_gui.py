@@ -30,6 +30,19 @@ def studio(app):
     app.processEvents()
 
 
+def test_sample_preview_groups_attacks_and_tracks_measure_selection(studio):
+    page = studio.score
+    page.load_example()
+    assert page.score.title == "First harmony"
+    assert len(page.staff._columns) == 4
+    assert all(len(chord) == 4 for chord in page.staff._columns)
+    assert page.staff.clef == "grand"
+    page.first.setValue(2)
+    page.last.setValue(3)
+    assert len(page.staff._columns) == 2
+    assert len(page.selected()) == 8
+
+
 def test_microphone_capture_bound_and_device_cleanup(monkeypatch):
     stream = Mock()
     fake = SimpleNamespace(query_devices=lambda *a: {"default_samplerate": 16000}, InputStream=Mock(return_value=stream))

@@ -758,13 +758,12 @@ class PartWritingScreen(QWidget):
             lambda: setattr(self.staff, "entry_accidental", self.accidental_box.currentData()))
         self.staff.noteRemoved.connect(self._remove_note)
         score_scroll = QScrollArea(); score_scroll.setWidgetResizable(True)
-        score_scroll.setWidget(self.staff); score_scroll.setMinimumHeight(325)
+        score_scroll.setWidget(self.staff); score_scroll.setMinimumHeight(285)
         layout.addWidget(score_scroll)
         self.score_scroll = score_scroll
         self.status = QLabel("Ready · Add notes or solve the I–IV–V–I starting progression.")
         self.status.setObjectName("AccentValue"); self.status.setWordWrap(True)
         self.status.setAccessibleName("Solver status")
-        layout.addWidget(self.status)
         self.piano = PianoWidget(36, 88)
         self.piano.setAccessibleName("Note-entry piano for the selected voice and slot")
         self.piano.notePressed.connect(self._piano_note)
@@ -806,10 +805,9 @@ class PartWritingScreen(QWidget):
             else:
                 n = more_commands.count()
                 more_commands.addWidget(button, n // 4, n % 4)
-        self.stop_btn.setEnabled(False)
+        self.stop_btn.setToolTip("Stop playback or cancel the active harmony search")
         self.reveal_btn.setCheckable(True)
-        layout.addLayout(commands)
-        layout.addWidget(self._disclosure("Piano keyboard · optional note entry", self.piano))
+        layout.addWidget(self.piano)
         table_panel = QWidget(); table_panel.setObjectName("PanelBody")
         table_layout = QVBoxLayout(table_panel)
         # Two short rows keep every editing command reachable on smaller windows.
@@ -817,17 +815,34 @@ class PartWritingScreen(QWidget):
         for n, button in enumerate(actions):
             edit_grid.addWidget(button, n // 4, n % 4)
         table_layout.addLayout(edit_grid); table_layout.addWidget(self.table)
-        layout.addWidget(self._disclosure("Assignment table · harmony, notes & slot editing", table_panel))
-        layout.addWidget(self._disclosure("Practice & solver settings", advanced))
+        search_row.removeWidget(paste)
+        table_layout.insertWidget(0, paste)
+        # Put commands with the task they affect, while retaining their names
+        # and callbacks for keyboard accessibility and existing integrations.
+        while more_commands.count(): more_commands.takeAt(0)
+        advanced_layout.addWidget(self.generate_btn)
+        table_layout.addWidget(self.auto_correct_btn)
+        listen_names = ("previous_btn", "next_solution_btn", "reveal_btn", "explain_btn",
+                        "play_voice_btn", "play_chord_btn", "play_transition_btn", "compare_btn",
+                        "save_btn", "open_btn", "export_btn", "reset_btn")
+        for n, name in enumerate(listen_names):
+            more_commands.addWidget(getattr(self, name), n // 4, n % 4)
         action_panel = QWidget(); action_panel.setObjectName("PanelBody"); action_panel.setLayout(more_commands)
-        layout.addWidget(self._disclosure("More actions · solutions, playback & files", action_panel))
-        layout.addWidget(self._disclosure("Feedback & explanation", self.diagnostics, True))
-        layout.addStretch(1)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setWidget(host)
-        return scroll
+        # The score is its own workspace; secondary tasks no longer make the
+        # main action disappear below a long accordion of unrelated controls.
+        self.editor_tabs = QTabWidget()
+        self.editor_tabs.setAccessibleName("Harmony task")
+        for page, title in ((host, "Write"), (table_panel, "Assignment"),
+                            (advanced, "Practice & rules"), (action_panel, "Listen & files")):
+            scroll = QScrollArea(); scroll.setWidgetResizable(True)
+            scroll.setWidget(page)
+            self.editor_tabs.addTab(scroll, title.replace("&", "&&"))
+        shell = QWidget(); outer = QVBoxLayout(shell)
+        outer.setContentsMargins(8, 8, 8, 8); outer.setSpacing(10)
+        outer.addWidget(self.editor_tabs, 1)
+        outer.addWidget(self.status)
+        outer.addLayout(commands)
+        return shell
 
     def _disclosure(self, title, content, expanded=False):
         panel = QWidget(); panel.setObjectName("PanelBody")
@@ -858,8 +873,14 @@ class PartWritingScreen(QWidget):
         self.model.changed.connect(self._problem_changed)
         self.table.selectionModel().currentChanged.connect(self._selection_changed)
         for widget in (self.key_box, self.tonality_box, self.meter_box,
-                       self.profile_box, self.layout_box, self.cadence_box):
+                       self.profile_box, self.cadence_box):
             widget.currentIndexChanged.connect(self._controls_changed)
+        self.layout_box.currentIndexChanged.connect(self._layout_changed)
+
+    def _layout_changed(self):
+        self.problem.layout = Layout(self.layout_box.currentData())
+        self._autosave()
+        self._refresh_preview()
 
     def _restore_problem(self) -> PartWritingProblem:
         raw = self.ctx.db.kv_get("part_writing.autosave", None)
@@ -1118,7 +1139,7 @@ class PartWritingScreen(QWidget):
                              ghost=ghost, locked=locked, generated=generated, violations=marked,
                              partial=[{voice: slot.voice(voice).pitch.exact for voice in VOICE_ORDER}
                                       for slot in self.problem.slots] if not solution else [])
-        self.score_scroll.setMinimumHeight(470 if self.problem.layout == Layout.OPEN_SCORE else 325)
+        self.score_scroll.setMinimumHeight(440 if self.problem.layout == Layout.OPEN_SCORE else 285)
         self.previous_btn.setEnabled(len(self.solutions) > 1)
         self.next_solution_btn.setEnabled(len(self.solutions) > 1)
         self.reveal_btn.setEnabled(self.practice is not None)
@@ -1204,12 +1225,15 @@ class PartWritingScreen(QWidget):
         if self._thread is not None:
             self._thread.deleteLater()
         self._worker = None; self._thread = None; self._cancel = None
-        self.solve_btn.setEnabled(True); self.stop_btn.setEnabled(False)
+        self.solve_btn.setEnabled(True)
 
     @guard("PartWritingScreen._stop_solve")
     def _stop_solve(self) -> None:
+        self.ctx.engine.stop()
         if self._cancel is not None:
             self._cancel.set(); self.status.setText("Cancelling…")
+        else:
+            self.status.setText("Playback stopped.")
 
     @guard("PartWritingScreen._check")
     def _check(self) -> None:
@@ -1390,6 +1414,10 @@ class PartWritingScreen(QWidget):
 
     def on_show(self) -> None:
         self._refresh_preview()
+
+    def hideEvent(self, event):
+        self.ctx.engine.stop()
+        super().hideEvent(event)
 
     def closeEvent(self, event) -> None:  # noqa: N802
         if self._cancel is not None:

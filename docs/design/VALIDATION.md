@@ -1,5 +1,39 @@
 # Redesign validation
 
+## Second design cycle
+
+Following user feedback, the first design was compared more strictly with its generated reference. The renewed cycle uses `work/qa-profile-v2`, leaving the user's normal application data separate. Each reviewer is a dedicated subagent named one generation higher. These are independent judgments, not an averaged product score.
+
+| Reviewer | Appearance | Reference match | Usability | Evidence |
+|---|---:|---:|---:|---|
+| Generation 5 | 5/10 | 3/10 | Not regraded | [Reference audit](generation-5-review.md); identified the structural gap. |
+| Generation 6 | 6/10 | 5/10 | 6/10 | [Native review](generation-6-review.md); full tutorial 8/10, Practice layout regression and Studio imbalance found. |
+| Generation 7 | 7/10 | 6/10 | 8/10 | [Native review](generation-7-review.md); Practice fixed, tutorial replay and sample score functional, Studio score below fold. |
+| Generation 8 | 7.5/10 | 7/10 | 8/10 | [Native review](generation-8-review.md); score-first Studio, tutorial 8.5/10; action footer needed pinning. |
+| Generation 9 | 8/10 | 7.5/10 | 8.5/10 | [Final native review](generation-9-review.md); pinned controls, Bass isolation, retained solutions and tutorial action gates verified. |
+
+Second-cycle local regression validation: **535 tests passed** (187.04 seconds), with 14 focused Studio/tutorial/tool tests and five solver GUI tests repeated after follow-up changes. Error/unused-import lint passed. The four added tests cover tutorial isolation/gates/resume/completion and grouped score-preview selection; an existing solver test now also verifies layout changes retain solutions. GitHub CI and release builds run the full suite against the published revision.
+
+### Changes driven by the renewed reviews
+
+- Shared editorial headers, module cards, contextual guidance rails and compact icon navigation replace the palette-only approach.
+- Solver task cards separate Write, Assignment, Practice & rules and Listen & files. Solve/Stop/Check/Play remain outside the scroll area; diagnostics sit beside the score.
+- Nested Qt layouts are explicitly reparented during workspace composition, resolving the Practice overlap caught in Generation 6.
+- Studio/Tools fields use balanced columns. Their action footers stay outside the scrolling task body. Studio score study shows the pitch overview before a collapsible setup panel, with a bundled original example score.
+- Tutorial runs the real editor against an isolated score store. The reviewer completed Bass selection, C3, F3, removal, re-entry, real solving, playback request and Assignment inspection. Replay was also exercised. Unit checks separately protect the real assignment autosave, wrong-pitch gates, resume and completion persistence.
+- The tutorial's step indicator stays stable across task switches. Completion feedback names the action just accomplished. First launch can be skipped; Pause, Resume, Restart and Replay remain accessible.
+- Clefs were reduced in size while retaining their staff anchors. Display-layout changes preserve solutions. Stop now stops playback as well as cancelling a search.
+
+### Scope of the current visual evidence
+
+Native screenshots are captured using Windows Computer Use, not a rendered mockup or headless screenshot harness. The generated four-workspace board is explicitly labeled a concept. Studio's canvas is a bounded pitch overview at selected attack times, not full score engraving. Expanded settings and tall/open scores can require scrolling; principal action footers remain reachable.
+
+The earlier-cycle record below is retained as history. Its more optimistic appearance scores preceded the user's stricter reference-match feedback and should not be compared as if they used the same criteria.
+
+After Generation 9, the main agent shortened Studio's introduction, displayed the loaded score title, spread simultaneous attack columns across the canvas, added bottom clearance for bass stems, and expanded the parts list to show the four sample parts. Native follow-up confirmed the new canvas, all four parts and the persistent footer; `current-studio.png` records this follow-up. Field cells align labels/controls at the top of mixed-height rows. The sidebar mark is also rendered into the Windows icon by the build script. Version metadata is synchronized at 1.5.0 for release packaging.
+
+## First design cycle (historical)
+
 The app was launched from this checkout with a separate `APPDATA` profile under the task's `work/qa-profile` directory. Native reviews used Windows Computer Use (`@oai/sky`), actual screenshots, pointer clicks and keyboard input. The user's normal progress database was not used for QA.
 
 ## Independent review rounds
@@ -30,7 +64,7 @@ The Windows runtime's captured frame and input origin differed by 8 pixels verti
 
 ## Regression coverage
 
-Final current-tree validation: **531 tests passed** (`python -m pytest tests -q`, 186.36 seconds). The repository's error/unused-import lint selection also passed (`python -m ruff check --select E9,F63,F7,F82,F401,F811 music_theory tests build main.py`), and `git diff --check` reported no whitespace errors. An AST comparison found no existing named functions removed from the changed Python files.
+First-cycle validation: **531 tests passed** (`python -m pytest tests -q`, 186.36 seconds). The repository's error/unused-import lint selection also passed (`python -m ruff check --select E9,F63,F7,F82,F401,F811 music_theory tests build main.py`), and `git diff --check` reported no whitespace errors.
 
 New regression coverage includes incomplete scores spanning all chord columns, G2/B2/D3/F3 bass line entry, in-key F-sharp and explicit F-natural entry, rejection of header/opposite-staff clicks, Delete targeting the selected voice, and scale/chord generation for all twelve piano roots. These automated checks supplement the native reviews; they do not replace them.
 
@@ -40,4 +74,4 @@ All existing navigation destinations and solver command handlers remain. The the
 
 Playback controls and notation/readout responses were exercised; acoustic output quality, physical MIDI hardware, microphone capture and every audio backend/device combination were not verified in this session. No claim is made that every exercise was manually completed. Linux rendering and a newly packaged Windows installer were not visually tested. Source publication does not replace previously released binaries.
 
-Remaining nonblocking polish from Generation 4: open-score actions require vertical scrolling at the reviewed 1274×800 window size; layout changes invalidate the displayed solution and require another solve; some neighboring open-score stems are close. These are recorded rather than concealed behind the numerical grade.
+Historical Generation 4 findings included scrolling to open-score actions, layout switches discarding results, and close neighboring stems. The second cycle pins the action row and preserves results across layout switches; tall notation itself still scrolls.

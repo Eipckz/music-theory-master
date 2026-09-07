@@ -8,9 +8,9 @@ from pathlib import Path
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QTabWidget,
+    QWidget, QVBoxLayout, QTabWidget, QHBoxLayout, QPushButton,
     QLineEdit, QComboBox, QListWidget, QAbstractItemView, QFileDialog,
-    QDoubleSpinBox, QGridLayout, QPushButton,
+    QDoubleSpinBox,
 )
 
 from ...errors import guard
@@ -36,21 +36,6 @@ _ANALYSIS_POOL = ThreadPoolExecutor(max_workers=1, thread_name_prefix="pitch-ana
 
 class StudioPage(ToolPage):
     """Keep the longer Studio action lists usable on small laptop screens."""
-    def __init__(self, ctx, help_text):
-        super().__init__(ctx, help_text)
-        self.layout.removeItem(self.buttons)
-        self.buttons.deleteLater()
-        self.buttons = QGridLayout()
-        self.layout.insertLayout(2, self.buttons)
-        self.button_count = 0
-
-    def button(self, title, handler):
-        button = QPushButton(title)
-        button.clicked.connect(handler)
-        self.buttons.addWidget(button, self.button_count // 3, self.button_count % 3)
-        self.button_count += 1
-        return button
-
     def hideEvent(self, event):
         self.ctx.engine.stop()
         super().hideEvent(event)
@@ -257,16 +242,16 @@ class SingingPage(StudioPage):
 
 class ScorePage(StudioPage):
     def __init__(self, ctx, singing):
-        super().__init__(ctx, "Import a local MusicXML/MXL score. Select parts, measures and a voice. Playback retains internal rests and note lengths, "
-                         "starts at the first selected attack, and uses written pitches at constant tempo. Repeats/ornaments/percussion are not performed.")
+        super().__init__(ctx, "Open a MusicXML/MXL score or try the sample. Choose a passage to see, hear and practice.")
         self.singing = singing
         self.score = None
         self.imported = ()
         self.open_btn = self.button("Open MusicXML", self.open)
+        self.sample_btn = self.button("Try a sample score", self.load_example)
         self.parts = QListWidget()
-        self.parts.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.parts.setMaximumHeight(90)
-        self.field("Parts", self.parts)
+        self.parts.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.parts.setFixedHeight(148)
+        self.field("Parts · Ctrl-click to select several", self.parts)
         self.first = self.field("First measure", spin(0, 9999, 1))
         self.last = self.field("Last measure", spin(0, 9999, 4))
         self.voice = self.field("Voice within selected parts", QComboBox())
@@ -279,6 +264,7 @@ class ScorePage(StudioPage):
         self.button("Practice pitches", self.practice)
         self.button("Send to singing", self.send_singing)
         self.staff = StaffWidget("treble")
+        self.staff.spread_columns = True
         self.staff.setMinimumHeight(130)
         self.layout.addWidget(self.staff)
         self.player = ExercisePlayer(ctx.engine, ctx.midi, settings=ctx.settings)
@@ -286,6 +272,44 @@ class ScorePage(StudioPage):
         self.layout.addWidget(self.player)
         self.watch([self.first, self.last, self.voice, self.bpm, self.leap], self.invalidate)
         self.parts.itemSelectionChanged.connect(self.invalidate)
+        self.report.setPlainText("Your score starts here.\n\nOpen a MusicXML/MXL file, or choose Try a sample score for a four-part I–IV–V–I example. Then select a part and hear, review or practice the passage.")
+        self.report.setMinimumHeight(110); self.report.setMaximumHeight(155)
+        self.staff.setAccessibleName("Selected passage pitch overview")
+        # Music is the canvas; passage settings are an intentional second task.
+        self.layout.removeItem(self.form); self.form.setParent(None)
+        self.setup_panel = QWidget(); self.setup_panel.setLayout(self.form)
+        self.setup_toggle = QPushButton("Passage setup · parts, measures and tempo  +")
+        self.setup_toggle.setObjectName("Disclosure"); self.setup_toggle.setCheckable(True)
+        self.setup_toggle.setAccessibleName("Show passage setup")
+        self.setup_panel.hide()
+        self.setup_toggle.toggled.connect(self.setup_panel.setVisible)
+        self.setup_toggle.toggled.connect(lambda on: self.setup_toggle.setText("Passage setup · parts, measures and tempo  " + ("−" if on else "+")))
+        self.layout.removeWidget(self.staff)
+        self.outer.removeItem(self.buttons); self.buttons.setParent(None)
+        self.buttons.removeWidget(self.open_btn); self.buttons.removeWidget(self.sample_btn)
+        import_row = QHBoxLayout(); import_row.addWidget(self.open_btn); import_row.addWidget(self.sample_btn)
+        self.layout.insertLayout(1, import_row)
+        self.layout.insertWidget(2, self.staff, 1)
+        self.layout.insertWidget(3, self.setup_toggle)
+        self.layout.insertWidget(4, self.setup_panel)
+        # Compact the remaining action grid after removing the import controls.
+        remaining = []
+        while self.buttons.count(): remaining.append(self.buttons.takeAt(0).widget())
+        for i, button in enumerate(remaining): self.buttons.addWidget(button, i // 3, i % 3)
+        self.outer.addLayout(self.buttons)
+
+    def _preview(self):
+        events = self.selected()
+        attacks = sorted({e.offset for e in events})[:12]
+        columns = [[n for e in events if e.offset == offset for n in e.notes] for offset in attacks]
+        self.help_label.setText(f"{self.score.title} · Measures {self.first.value()}–{self.last.value()} · Pitch overview ({len(attacks)} attacks)")
+        self.staff.set_clef("grand" if any(n.midi < 60 for notes in columns for n in notes) else "treble")
+        self.staff.set_columns(columns)
+        self.staff.setMinimumHeight(self.staff.minimumSizeHint().height() + 24)
+
+    def load_example(self):
+        from ...paths import resources_dir
+        self.load(resources_dir() / "examples" / "first-harmony.musicxml")
 
     def invalidate(self):
         self.ctx.engine.stop()
@@ -293,6 +317,8 @@ class ScorePage(StudioPage):
         self.staff.set_notes([])
         if self.score:
             self.report.setPlainText(f"{self.score.title}: selection changed. Play, review or practice the selected passage.")
+            try: self._preview()
+            except ValueError: pass
 
     @guard("Score.open")
     def open(self):
@@ -317,6 +343,7 @@ class ScorePage(StudioPage):
             self.first.setValue(min(e.measure for e in score.events))
             self.last.setValue(min(max(e.measure for e in score.events), self.first.value() + 7))
             self.report.setPlainText(f"{score.title}\n{len(score.parts)} parts; {len(score.events)} pitched events.\n" + "\n".join(score.warnings))
+            self._preview()
         except ValueError as exc:
             self.report.setPlainText(str(exc))
 
@@ -336,7 +363,7 @@ class ScorePage(StudioPage):
         try:
             events = self.selected()
             self.ctx.engine.play_events(playback_events(events, self.bpm.value()))
-            self.staff.set_notes([n for e in events[:16] for n in e.notes])
+            self._preview()
         except ValueError as exc:
             self.report.setPlainText(str(exc))
 
@@ -399,7 +426,8 @@ class JazzPage(StudioPage):
         self.button("Build progression", self.calculate)
         self.play_btn = self.button("Hear progression", self.play)
         self.staff = StaffWidget("grand")
-        self.layout.addWidget(self.staff)
+        self.staff.spread_columns = True
+        self.layout.insertWidget(1, self.staff)
         self.chords = []
         self.watch([self.tonic, self.mode, self.sub, self.voicing, self.bpm], self.calculate)
         self.calculate()
@@ -543,7 +571,7 @@ class StudioScreen(QWidget):
         self.score = ScorePage(ctx, self.singing)
         self.jazz = JazzPage(ctx)
         self.assignments = AssignmentPage(ctx)
-        for title, page in (("Score practice & review", self.score), ("Singing", self.singing),
+        for title, page in (("Score study", self.score), ("Singing", self.singing),
                             ("Jazz", self.jazz), ("Assignments", self.assignments)):
             self.tabs.addTab(page, title.replace("&", "&&"))
         layout.addWidget(self.tabs)

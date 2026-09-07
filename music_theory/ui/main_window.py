@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from .. import __app_name__
 from ..errors import guard, set_notifier
 from . import theme
+from .workspace import install_workspace, icon_for
 from .celebration import CelebrationOverlay
 from .screens.about import AboutScreen
 from .screens.achievements import AchievementsScreen
@@ -26,6 +27,7 @@ from .screens.reference import ReferenceScreen
 from .screens.session import SessionScreen
 from .screens.settings import SettingsScreen
 from .screens.stats import StatsScreen
+from .screens.tutorial import TutorialScreen
 
 from PyQt6.QtWidgets import QMainWindow
 
@@ -39,6 +41,7 @@ _NAV = [
     ("Reference", "reference"),
     ("Tools", "tools"),
     ("Studio", "studio"),
+    ("Tutorial", "tutorial"),
     ("Progress", "stats"),
     ("Awards", "achievements"),
     ("Placement", "placement"),
@@ -77,6 +80,7 @@ class MainWindow(QMainWindow):
         self._add("placement", PlacementScreen(ctx))
         self._add("settings", SettingsScreen(ctx))
         self._add("about", AboutScreen(ctx))
+        self._add("tutorial", TutorialScreen(ctx))
 
         for name, screen in self.screens.items():
             if hasattr(screen, "navigate"):
@@ -92,7 +96,19 @@ class MainWindow(QMainWindow):
         set_notifier(lambda title, msg: self.toast(f"{title}: {msg}", kind="warning"))
 
         start = "placement" if not self.ctx.settings.get("placement_done", False) else "dashboard"
+        if not self.ctx.settings.get("onboarding_seen", False):
+            start = "tutorial"
         self.go_to(start)
+
+    def open_tutorial(self, module="part_writing"):
+        self.screens["tutorial"].show_guide(module)
+        self.go_to("tutorial")
+
+    def closeEvent(self, event):
+        self.ctx.engine.stop()
+        self.screens["tutorial"].close()
+        self.screens["part_writing"].close()
+        super().closeEvent(event)
 
     def toast(self, message: str, *, kind: str = "info", msec: int = 2600) -> None:
         """Show a brief, non-modal notification (achievements, errors)."""
@@ -112,27 +128,30 @@ class MainWindow(QMainWindow):
             self._celebration.setGeometry(self.rect())
 
     def _add(self, name: str, widget: QWidget) -> None:
+        install_workspace(widget, name)
         self.screens[name] = widget
         self.stack.addWidget(widget)
 
     def _build_sidebar(self) -> QWidget:
         bar = QWidget()
         bar.setObjectName("Sidebar")
-        bar.setMinimumWidth(176)
+        bar.setMinimumWidth(168)
         lay = QVBoxLayout(bar)
-        lay.setContentsMargins(10, 14, 10, 14)
-        lay.setSpacing(4)
+        lay.setContentsMargins(10, 12, 10, 12)
+        lay.setSpacing(2)
         from ..paths import resources_dir
         mark = QLabel()
         mark.setPixmap(QPixmap(str(resources_dir() / "icons" / "conservatory.svg")).scaled(
             42, 42, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        mark.setContentsMargins(14, 0, 0, 0)
-        lay.addWidget(mark)
+        mark.setFixedSize(38, 42)
+        brand_row = QHBoxLayout(); brand_row.setContentsMargins(5, 0, 0, 0)
+        brand_row.addWidget(mark)
         brand = QLabel("Music Theory\nMaster")
         brand.setWordWrap(True)
         brand.setObjectName("Brand")
-        lay.addWidget(brand)
-        lay.addSpacing(8)
+        brand.setStyleSheet('font-family: "Georgia"; font-size: 16px; padding: 0px;')
+        brand_row.addWidget(brand, 1); lay.addLayout(brand_row)
+        lay.addSpacing(2)
 
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
@@ -144,6 +163,8 @@ class MainWindow(QMainWindow):
                 section.setObjectName("NavSection")
                 lay.addWidget(section)
             btn = QPushButton(label)
+            btn.setIcon(icon_for(name))
+            btn.setStyleSheet("text-align: left; padding: 5px 10px; min-height: 18px;")
             btn.setCheckable(True)
             btn.clicked.connect(lambda _=False, n=name: self.go_to(n))
             lay.addWidget(btn)
@@ -153,7 +174,7 @@ class MainWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setObjectName("SidebarScroll")
         scroll.setWidgetResizable(True)
-        scroll.setFixedWidth(196)
+        scroll.setFixedWidth(184)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(bar)
